@@ -9,13 +9,18 @@
 #include <stdio.h>
 #include "esp_heap_caps.h"
 #include "esp_log.h"
+#include "esp_attr.h"
 #include "sdkconfig.h"
 
 static const char *TAG = "looper";
 
 #define MAX_ONSETS   256
-#define CLASSIFY_BLK 2                 // blocks of audio used to classify a hit
-#define REFRACT_BLK  12                // ~100 ms between hits
+#define MS(x)        ((int)((x) * 0.001f * FS))
+#define CLASSIFY_S   MS(16)            // audio used to classify a hit
+#define REFRACT_S    MS(100)           // minimum gap between hits
+#define HIT_LAG      MS(5)             // detector lag: a hit is seen one block late plus the DMA
+#define NOTE_LAG     MS(30)            // tracker lag on a pitch change within a phrase
+#define ONSET_MAX_S  MS(80)            // never place a note-on earlier than this before the tracker settled
 
 enum { L_BASS, L_CHORDS, L_LEAD, L_N };
 static const int page_layer[PG_COUNT] = { -1, L_BASS, L_CHORDS, L_LEAD, -1 };
@@ -46,16 +51,17 @@ static struct {
 
     // beatbox onset detector
     float bg_db, cap_db;
-    int   refr, cap_blocks, cap_pos;
+    int   refr, cap_len, cap_pos;
     bool  capturing;
     drum_bands_t cap;
+    float cpu;
 
     volatile int ev_short, ev_long, ev_clear;
     char  msg[24];
-    int   msg_blocks;
+    int   msg_samples;
     int   last_drum;
     float drum_lo, drum_hi;
-    float live_out[256];
+    float live_out[512];
 } S;
 
 static const synth_cfg_t CFG_BASS = { .a_ms = 4, .d_ms = 180, .sus = 0.7f, .r_ms = 60,
@@ -90,7 +96,7 @@ static inline float mulaw_dec(uint8_t u)
     return (float)(u & 0x80 ? -s : s) / 32767.0f;
 }
 
-static void say(const char *m) { snprintf(S.msg, sizeof S.msg, "%s", m); S.msg_blocks = 250; }
+static void say(const char *m) { snprintf(S.msg, sizeof S.msg, "%s", m); S.msg_samples = MS(2500); }
 
 static void live_off(void)
 {
@@ -114,7 +120,7 @@ static void clear_song(void)
 static void init(void)
 {
     memset(&S, 0, sizeof S);
-    S.page = PG_DRUMS; S.live_note = -1; S.last_drum = -1; S.bg_db = -60; S.last_step = -1;
+    S.page = PG_DRUMS; S.live_note = -1; S.last_drum = -1; S.bg_db = -60; S.last_step = -1; S.refr = 0;
     drums_init();
     tune_init();
     synth_init(&S.syn_pb[L_BASS], &CFG_BASS, 1);   synth_init(&S.syn_live[L_BASS], &CFG_BASS, 1);
@@ -137,28 +143,58 @@ static void init(void)
 // ---- recording helpers
 static inline int step_at(int pos) { int s = (int)lroundf(pos / S.step_len); return ((s % S.steps) + S.steps) % S.steps; }
 
+// Score how well the hits sit on a 16th grid of the given step length,
+// anchored at the first hit.
+static float grid_score(float step, int t0)
+{
+    float sc = 0;
+    for (int i = 0; i < S.n_ons; i++) {
+        float x = (S.ons[i].t - t0) / step;
+        float dev = fabsf(x - lroundf(x));
+        sc += (1.0f - clampf(dev / 0.3f, 0, 1)) * (0.5f + S.ons[i].vel / 254.0f);
+    }
+    return sc;
+}
+
+// The take ends with a press on the next downbeat, so its musical length is
+// press-to-press minus the pre-roll before the first hit. That picks the bar
+// count; the hits themselves then fine-tune the tempo within +-15 %.
 static void lock_from_take(void)
 {
-    int D = S.rec_samples;
     const float fs = FS;
-    if (D < 1.2f * fs) { say("too short"); return; }
-    if (D > S.vcap) { say("too long"); return; }
+    int t0 = S.n_ons ? S.ons[0].t : 0;
+    int L = S.rec_samples - t0;
+    if (L < 1.2f * fs) { say("too short"); return; }
+    if (L > S.vcap) { say("too long"); return; }
     int bars = 1;
     float bpm = 0;
     for (int n = 1; n <= LOOP_MAX_BARS; n *= 2) {
-        bpm = 240.0f * n * fs / D;
+        bpm = 240.0f * n * fs / L;
         bars = n;
         if (bpm < 160.0f) break;
     }
-    S.bpm = bpm; S.bars = bars; S.steps = bars * 16;
-    S.loop_len = D; S.step_len = (float)D / S.steps;
+    float best_bpm = bpm, best = -1;
+    if (S.n_ons >= 3) {
+        for (float t = bpm * 0.85f; t <= bpm * 1.15f; t += 0.25f) {
+            float step = 15.0f * fs / t;
+            float sc = grid_score(step, t0) - 0.15f * S.n_ons * fabsf(t - bpm) / (0.15f * bpm);
+            if (sc > best) { best = sc; best_bpm = t; }
+        }
+    }
+    S.bpm = best_bpm; S.bars = bars; S.steps = bars * 16;
+    S.step_len = 15.0f * fs / S.bpm;
+    S.loop_len = (int)(S.step_len * S.steps + 0.5f);
+    if (S.loop_len > S.vcap) { say("too long"); return; }
     memset(S.drum_pat, 0, sizeof S.drum_pat);
     for (int i = 0; i < S.n_ons; i++) {
-        int s = step_at(S.ons[i].t);
+        int s = step_at(S.ons[i].t - t0);
         if (S.ons[i].vel > S.drum_pat[s][S.ons[i].type]) S.drum_pat[s][S.ons[i].type] = S.ons[i].vel;
     }
-    S.pos = 0; S.last_step = -1; S.locked = true; S.has[PG_DRUMS] = true;
-    ESP_LOGI(TAG, "locked: %.1f bpm, %d bars, %d hits", S.bpm, S.bars, S.n_ons);
+    // keep playing in phase with what was just beatboxed
+    S.pos = (S.rec_samples - t0) % S.loop_len;
+    S.last_step = -1; S.locked = true; S.has[PG_DRUMS] = true;
+    ESP_LOGI(TAG, "locked: %.2f bpm (press said %.1f), %d bars, %d hits, pre-roll %d ms",
+             S.bpm, bpm, S.bars, S.n_ons, (int)(t0 * 1000 / fs));
 }
 
 static void snap_layer(int l)
@@ -275,7 +311,7 @@ static int page_note(int page, const voice_t *v)
     return n;
 }
 
-static void live_note_on(int l, int n)
+static void live_note_on(int l, int n, int lag)
 {
     synth_t *y = &S.syn_live[l];
     if (l == L_CHORDS) {
@@ -285,7 +321,7 @@ static void live_note_on(int l, int n)
         for (int i = 0; i < 3; i++) synth_note_on(y, tri[i], 0.9f);
     } else synth_note_on(y, n, 0.9f);
     if (S.rec && S.locked) {
-        int s = step_at(S.pos);
+        int s = step_at(S.pos - lag);
         S.seq[l][s] = n | SEQ_ATTACK;
     }
 }
@@ -296,7 +332,13 @@ static void melodic_page(const voice_t *v)
     int nn = (v->voiced && v->note >= 0) ? page_note(S.page, v) : -1;
     if (nn != S.live_note) {
         if (nn < 0) synth_note_off(&S.syn_live[l], -1);
-        else live_note_on(l, nn);
+        else {
+            // first note of a phrase: the tracker needed a moment to settle,
+            // so date it back to when the voice started
+            int lag = S.live_note < 0 ? v->since_onset : NOTE_LAG;
+            if (lag > ONSET_MAX_S) lag = ONSET_MAX_S;
+            live_note_on(l, nn, lag);
+        }
         S.live_note = nn;
     }
     if (S.rec && S.page == PG_BASS && v->voiced && v->note >= 0) S.pc_w[v->note % 12] += 1;
@@ -307,26 +349,29 @@ static void drums_page(const float *in, int n, const voice_t *v)
 {
     drum_bands_t b;
     drums_analyse(in, n, &b);
-    if (S.refr > 0) S.refr--;
-    const float thr = (float)CONFIG_KIT_GATE_DB;
-    if (!S.capturing && S.refr == 0 && v->db > thr && v->db > S.bg_db + 7.0f) {
-        S.capturing = true; S.cap_blocks = 0; S.cap_pos = S.locked ? S.pos : S.rec_samples;
-        S.cap_db = v->db; S.cap.lo = S.cap.hi = S.cap.all = 0; S.refr = REFRACT_BLK;
+    if (S.refr > 0) S.refr -= n;
+    const float thr = voice_noise_db() + CONFIG_KIT_ONSET_DB;
+    if (!S.capturing && S.refr <= 0 && v->db > thr && v->db > S.bg_db + 8.0f) {
+        S.capturing = true; S.cap_len = 0;
+        S.cap_pos = (S.locked ? S.pos : S.rec_samples) - HIT_LAG;
+        S.cap_db = v->db; S.cap.lo = S.cap.hi = S.cap.all = 0; S.refr = REFRACT_S;
     }
-    S.bg_db += (v->db > S.bg_db ? 0.5f : 0.05f) * (v->db - S.bg_db);
+    const float blk = (float)n / FS;
+    S.bg_db += (1 - expf(-blk / (v->db > S.bg_db ? 0.004f : 0.05f))) * (v->db - S.bg_db);
     if (S.capturing) {
         S.cap.lo += b.lo; S.cap.hi += b.hi; S.cap.all += b.all;
         if (v->db > S.cap_db) S.cap_db = v->db;
-        if (++S.cap_blocks >= CLASSIFY_BLK) {
+        S.cap_len += n;
+        if (S.cap_len >= CLASSIFY_S) {
             S.capturing = false;
             int type = drums_classify(&S.cap, &S.drum_lo, &S.drum_hi);
-            float vel = clampf(0.35f + (S.cap_db - thr) / 30.0f, 0.35f, 1.0f);
+            float vel = clampf(0.35f + (S.cap_db - thr) / 25.0f, 0.35f, 1.0f);
             drums_trigger(type, vel);
             S.last_drum = type;
             if (S.rec) {
                 uint8_t v7 = (uint8_t)(vel * 127);
                 if (!S.locked) {
-                    if (S.n_ons < MAX_ONSETS) { S.ons[S.n_ons].t = S.cap_pos; S.ons[S.n_ons].type = type; S.ons[S.n_ons].vel = v7; S.n_ons++; }
+                    if (S.n_ons < MAX_ONSETS) { S.ons[S.n_ons].t = S.cap_pos < 0 ? 0 : S.cap_pos; S.ons[S.n_ons].type = type; S.ons[S.n_ons].vel = v7; S.n_ons++; }
                 } else {
                     int s = step_at(S.cap_pos);
                     if (v7 > S.drum_pat[s][type]) S.drum_pat[s][type] = v7;
@@ -336,10 +381,10 @@ static void drums_page(const float *in, int n, const voice_t *v)
     }
 }
 
-static void process(const float *in, float *out, int n, const voice_t *v)
+static void IRAM_ATTR process(const float *in, float *out, int n, const voice_t *v)
 {
     handle_events();
-    if (S.msg_blocks > 0 && --S.msg_blocks == 0) S.msg[0] = 0;
+    if (S.msg_samples > 0 && (S.msg_samples -= n) <= 0) S.msg[0] = 0;
 
     // transport
     if (S.locked) {

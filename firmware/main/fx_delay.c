@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define DMAX 8192
+#define DMAX 16384
 static float buf[DMAX];
 static int wp, dly;
 static float lp;

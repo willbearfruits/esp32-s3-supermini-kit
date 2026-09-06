@@ -9,6 +9,7 @@
 #include "dsp.h"
 #include "drums.h"
 #include "pins.h"
+#include "voice.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -88,7 +89,7 @@ static void draw(const looper_ui_t *u, bool blink, int hold_ms)
     oled_text(OLED_W - 6 * strlen(st), 0, st);
     oled_hline(0, OLED_W - 1, 8, true);
 
-    if (u->locked) snprintf(line, sizeof line, "%3.0fbpm %db %s", u->bpm, u->bars, u->key);
+    if (u->locked) snprintf(line, sizeof line, "%3.0fbpm %db %-5s %2.0f%%", u->bpm, u->bars, u->key, audio_cpu_load() * 100);
     else snprintf(line, sizeof line, "tap: record %ds max", u->loop_sec_max);
     oled_text(0, 10, line);
 
@@ -149,9 +150,10 @@ void app_looper_run(void)
             looper_ui_t u; voice_t v; char nm[5];
             looper_get_ui(&u);
             audio_get_voice(&v);
-            ESP_LOGI(TAG, "%-6s %s %5.1fbpm %db %-6s | %s %5.1f dB %s | %s",
+            ESP_LOGI(TAG, "%-6s %s %6.2fbpm %db %-6s | %s %5.1f dB floor %5.1f %s conf %.2f | cpu %2.0f%% | %s",
                      looper_page_name(u.page), u.rec ? "REC " : "play", u.bpm, u.bars, u.key,
-                     v.gate ? "VOICE" : "quiet", v.db, v.voiced ? note_name(v.note, nm) : "---", u.msg);
+                     v.gate ? "VOICE" : "quiet", v.db, voice_noise_db(), v.voiced ? note_name(v.note, nm) : "---", v.conf,
+                     audio_cpu_load() * 100, u.msg);
         }
         vTaskDelay(pdMS_TO_TICKS(10));
     }

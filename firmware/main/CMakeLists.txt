@@ -8,3 +8,5 @@ endif()
 idf_component_register(SRCS ${srcs}
                        INCLUDE_DIRS "."
                        REQUIRES driver esp_timer esp_lcd esp_system)
+# The DSP is plain C loops; let the compiler go all in on them.
+target_compile_options(${COMPONENT_LIB} PRIVATE -O3 -ffast-math -fno-math-errno)

@@ -1,5 +1,6 @@
 // Small subtractive synth: two detuned polyBLEP oscillators, optional sub,
-// ADSR amp envelope and a resonant lowpass swept by the envelope.
+// ADSR amp envelope and a state variable lowpass whose cutoff is recomputed
+// every sample from the envelope and velocity.
 #pragma once
 #include "dsp.h"
 
@@ -7,7 +8,7 @@
 
 typedef struct {
     float a_ms, d_ms, sus, r_ms;   // amp envelope
-    float cutoff, env_hz, q;       // lowpass base cutoff, envelope sweep, resonance
+    float cutoff, env_hz, vel_hz, q; // lowpass base, envelope sweep, velocity sweep, resonance
     float detune_cents;            // between the two oscillators
     float sub;                     // sub-octave square level
     bool  square;                  // square instead of saw
@@ -21,7 +22,7 @@ typedef struct {
     float    ph1, ph2, phs, freq, freq_t, glide_c;
     float    env;
     int      stage;                // 0 idle 1 attack 2 decay 3 sustain 4 release
-    biquad_t lpf;
+    svf_t    lpf;
     uint32_t age;
 } synth_voice_t;
 

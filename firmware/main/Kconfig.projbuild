@@ -63,9 +63,19 @@ menu "Kit firmware"
 
     config KIT_SAMPLE_RATE
         int "Sample rate (Hz)"
-        default 16000
+        default 32000
         help
-            Shared by mic and both DACs. 16000 keeps the DSP cheap and is
-            plenty for voice.
+            Shared by mic and both DACs. 32000 gives 16 kHz of bandwidth,
+            which is what the hats and sibilants need; the S3 has the CPU
+            for it. 16000 halves every buffer if RAM gets tight.
+
+    config KIT_ONSET_DB
+        int "Beatbox onset threshold above the noise floor (dB)"
+        range 6 40
+        default 20
+        depends on KIT_APP_LOOPER
+        help
+            A hit must exceed the tracked background noise by this much,
+            and jump by at least 8 dB, before it counts as a drum.
 
 endmenu

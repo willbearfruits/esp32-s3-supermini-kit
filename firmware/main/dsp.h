@@ -36,6 +36,46 @@ static inline float frand(uint32_t *seed)
     return (float)((*seed >> 9) & 0x7FFF) / 16384.0f - 1.0f;
 }
 
+// --- fast maths for per-sample control paths (no libm in the hot loops)
+// tan(x) for 0 <= x < ~0.8, i.e. cutoffs below a quarter of the sample rate
+static inline float fast_tan(float x)
+{
+    float x2 = x * x;
+    return x * (1.0f + x2 * (0.333333f + x2 * (0.133333f + x2 * 0.053968f)));
+}
+// sin(2*pi*p) for a phase p in 0..1, about 0.1 % error, good for drums/LFOs
+static inline float fast_sin01(float p)
+{
+    float y = p < 0.5f ? 16.0f * p * (0.5f - p) : -16.0f * (p - 0.5f) * (1.0f - p);
+    return y * (0.775f + 0.225f * fabsf(y));
+}
+
+// --- TPT state variable filter (Zavalishin). svf_set is cheap enough to
+// call every sample, which is what makes filter sweeps click-free.
+typedef struct { float ic1, ic2, k, a1, a2, a3; } svf_t;
+static inline void svf_set(svf_t *f, float hz, float q)
+{
+    float g = fast_tan(3.14159265f * hz / FS);
+    f->k = 1.0f / q;
+    f->a1 = 1.0f / (1.0f + g * (g + f->k));
+    f->a2 = g * f->a1;
+    f->a3 = g * f->a2;
+}
+static inline void svf_reset(svf_t *f) { f->ic1 = f->ic2 = 0; }
+// returns lowpass; *bp / *hp optional
+static inline float svf_run(svf_t *f, float x, float *bp, float *hp)
+{
+    float v3 = x - f->ic2;
+    float v1 = f->a1 * f->ic1 + f->a2 * v3;
+    float v2 = f->ic2 + f->a2 * f->ic1 + f->a3 * v3;
+    f->ic1 = 2.0f * v1 - f->ic1;
+    f->ic2 = 2.0f * v2 - f->ic2;
+    if (bp) *bp = v1;
+    if (hp) *hp = x - f->k * v1 - v2;
+    return v2;
+}
+#define SVF_MAX_HZ (FS * 0.22f)
+
 static inline float clampf(float x, float lo, float hi) { return x < lo ? lo : (x > hi ? hi : x); }
 static inline float softclip(float x) { return tanhf(x); }
 

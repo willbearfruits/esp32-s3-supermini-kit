@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define RING 4096
+#define RING 8192
 static float rec[RING];
 static float slice[RING];
 static int   rp;

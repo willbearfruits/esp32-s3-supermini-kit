@@ -1,6 +1,7 @@
 #include "tune.h"
 #include "dsp.h"
 #include <string.h>
+#include "esp_attr.h"
 
 #define L 1024
 #define W 512.0f
@@ -9,11 +10,13 @@ static int   wp;
 static float ph_a, ph_b;          // phasors of the main and octave shifters
 static float ratio = 1, wet;
 static int   target = -1;
+static float win[513];           // half sine window, indexed by ph * 512
 
 void tune_init(void)
 {
     memset(dl, 0, sizeof dl);
     wp = 0; ph_a = 0; ph_b = 0; ratio = 1; wet = 0; target = -1;
+    for (int i = 0; i <= 512; i++) win[i] = sinf(3.14159265f * i / 512.0f);
 }
 
 int tune_target(void) { return target; }
@@ -34,10 +37,10 @@ static inline float shift(float *ph, float r)
     if (*ph < 0) *ph += 1;
     float p2 = *ph + 0.5f;
     if (p2 >= 1) p2 -= 1;
-    return tap(*ph * W) * sinf(3.14159265f * *ph) + tap(p2 * W) * sinf(3.14159265f * p2);
+    return tap(*ph * W) * win[(int)(*ph * 512.0f)] + tap(p2 * W) * win[(int)(p2 * 512.0f)];
 }
 
-void tune_process(const float *in, float *out, int n, const voice_t *v, const scale_t *sc)
+void IRAM_ATTR tune_process(const float *in, float *out, int n, const voice_t *v, const scale_t *sc)
 {
     float want = 1.0f;
     if (v->voiced && v->freq > 0) {
