@@ -1,5 +1,28 @@
 menu "Kit firmware"
 
+    choice KIT_APP
+        prompt "Application"
+        default KIT_APP_LOOPER
+        help
+            Which program the board runs. Both share the audio engine, voice
+            tracker, OLED driver and self-test.
+
+        config KIT_APP_LOOPER
+            bool "Voice looper (drums, bass, chords, lead, vocal)"
+        config KIT_APP_INSTRUMENT
+            bool "Voice instrument (vocoder, autotune, guitar, delay, ...)"
+    endchoice
+
+    config KIT_LOOP_MAX_SEC
+        int "Looper: longest loop in seconds"
+        range 2 60
+        default 12
+        depends on KIT_APP_LOOPER
+        help
+            Sets the size of the vocal loop buffer (one byte per sample, so
+            12 s at 16 kHz is 192 KB of RAM). Drum takes longer than this are
+            rejected. If the allocation fails the size is halved until it fits.
+
     config KIT_MIC_GAIN
         int "Mic gain (linear multiplier)"
         range 1 64
