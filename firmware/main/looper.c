@@ -249,9 +249,8 @@ static void click(bool accent)
 
 static void on_step(int s)
 {
-    // metronome: while armed or recording, and on the drums page until a
-    // beat exists
-    bool metro = S.armed || S.rec || (S.page == PG_DRUMS && !S.has[PG_DRUMS]);
+    // metronome: only during the count-in and the take
+    bool metro = S.armed || S.rec;
     if (metro && (s % 4) == 0) click((s % 16) == 0);
 
     bool rec_drums = S.rec && S.page == PG_DRUMS;
