@@ -1,3 +1,6 @@
+// Fixed grid looper. The tempo and bar count are settings, a metronome
+// gives the count-in, every take is exactly one loop long and stops by
+// itself, so a layer always lands where you played it.
 #include "looper.h"
 #include "dsp.h"
 #include "scale.h"
@@ -14,13 +17,12 @@
 
 static const char *TAG = "looper";
 
-#define MAX_ONSETS   256
 #define MS(x)        ((int)((x) * 0.001f * FS))
 #define CLASSIFY_S   MS(16)            // audio used to classify a hit
 #define REFRACT_S    MS(100)           // minimum gap between hits
 #define HIT_LAG      MS(5)             // detector lag: a hit is seen one block late plus the DMA
 #define NOTE_LAG     MS(30)            // tracker lag on a pitch change within a phrase
-#define ONSET_MAX_S  MS(80)            // never place a note-on earlier than this before the tracker settled
+#define ONSET_MAX_S  MS(80)            // never date a note-on back further than this
 
 enum { L_BASS, L_CHORDS, L_LEAD, L_N };
 static const int page_layer[PG_COUNT] = { -1, L_BASS, L_CHORDS, L_LEAD, -1 };
@@ -28,13 +30,9 @@ static const char *page_names[PG_COUNT] = { "DRUMS", "BASS", "CHORDS", "LEAD", "
 
 static struct {
     int   page;
-    bool  rec, locked;
+    bool  armed, rec;
     float bpm, step_len;
     int   bars, steps, loop_len, pos, last_step;
-
-    // first drum take, before the tempo exists
-    int   rec_samples, n_ons;
-    struct { int t; uint8_t type, vel; } ons[MAX_ONSETS];
 
     uint8_t drum_pat[LOOP_MAX_STEPS][DRUM_N];
     uint8_t seq[L_N][LOOP_MAX_STEPS];
@@ -44,7 +42,7 @@ static struct {
     float   pc_w[12];                  // pitch classes heard while recording bass
 
     synth_t syn_pb[L_N], syn_live[L_N];
-    int     live_note, rec_note;
+    int     live_note;
 
     uint8_t *vbuf;                     // vocal loop, mu-law, one byte per sample
     int      vcap;
@@ -54,7 +52,9 @@ static struct {
     int   refr, cap_len, cap_pos;
     bool  capturing;
     drum_bands_t cap;
-    float cpu;
+
+    // metronome
+    float click_amp, click_ph, click_hz, click_c;
 
     volatile int ev_short, ev_long, ev_clear;
     char  msg[24];
@@ -65,13 +65,13 @@ static struct {
 } S;
 
 static const synth_cfg_t CFG_BASS = { .a_ms = 4, .d_ms = 180, .sus = 0.7f, .r_ms = 60,
-    .cutoff = 180, .env_hz = 900, .q = 1.2f, .detune_cents = 4, .sub = 0.6f, .square = false,
+    .cutoff = 150, .env_hz = 900, .vel_hz = 300, .q = 1.2f, .detune_cents = 4, .sub = 0.6f, .square = false,
     .glide_ms = 25, .gain = 0.45f };
 static const synth_cfg_t CFG_CHORD = { .a_ms = 30, .d_ms = 400, .sus = 0.8f, .r_ms = 250,
-    .cutoff = 500, .env_hz = 1500, .q = 0.8f, .detune_cents = 9, .sub = 0, .square = false,
+    .cutoff = 400, .env_hz = 1500, .vel_hz = 500, .q = 0.8f, .detune_cents = 9, .sub = 0, .square = false,
     .glide_ms = 0, .gain = 0.16f };
 static const synth_cfg_t CFG_LEAD = { .a_ms = 6, .d_ms = 150, .sus = 0.75f, .r_ms = 120,
-    .cutoff = 900, .env_hz = 2500, .q = 1.5f, .detune_cents = 12, .sub = 0.25f, .square = true,
+    .cutoff = 800, .env_hz = 2500, .vel_hz = 800, .q = 1.5f, .detune_cents = 12, .sub = 0.25f, .square = true,
     .glide_ms = 40, .gain = 0.3f };
 
 // ---- mu-law
@@ -104,9 +104,15 @@ static void live_off(void)
     S.live_note = -1;
 }
 
+static bool song_empty(void)
+{
+    for (int p = 0; p < PG_COUNT; p++) if (S.has[p]) return false;
+    return true;
+}
+
 static void clear_song(void)
 {
-    S.locked = false; S.rec = false; S.bpm = 0; S.bars = 0; S.steps = 0; S.pos = 0; S.last_step = -1;
+    S.armed = false; S.rec = false;
     memset(S.drum_pat, 0, sizeof S.drum_pat);
     memset(S.seq, 0, sizeof S.seq);
     memset(S.has, 0, sizeof S.has);
@@ -120,12 +126,19 @@ static void clear_song(void)
 static void init(void)
 {
     memset(&S, 0, sizeof S);
-    S.page = PG_DRUMS; S.live_note = -1; S.last_drum = -1; S.bg_db = -60; S.last_step = -1; S.refr = 0;
+    S.page = PG_DRUMS; S.live_note = -1; S.last_drum = -1; S.bg_db = -60; S.last_step = -1;
     drums_init();
     tune_init();
     synth_init(&S.syn_pb[L_BASS], &CFG_BASS, 1);   synth_init(&S.syn_live[L_BASS], &CFG_BASS, 1);
     synth_init(&S.syn_pb[L_CHORDS], &CFG_CHORD, 3); synth_init(&S.syn_live[L_CHORDS], &CFG_CHORD, 3);
     synth_init(&S.syn_pb[L_LEAD], &CFG_LEAD, 1);   synth_init(&S.syn_live[L_LEAD], &CFG_LEAD, 1);
+
+    S.bpm = CONFIG_KIT_BPM;
+    S.bars = CONFIG_KIT_LOOP_BARS;
+    S.steps = S.bars * 16;
+    S.step_len = 15.0f * FS / S.bpm;
+    S.loop_len = (int)(S.step_len * S.steps + 0.5f);
+    S.click_c = expf(-1.0f / (0.012f * FS));
 
     int cap = CONFIG_KIT_LOOP_MAX_SEC * CONFIG_KIT_SAMPLE_RATE;
     while (cap >= 2 * CONFIG_KIT_SAMPLE_RATE) {
@@ -135,67 +148,12 @@ static void init(void)
         cap /= 2;
     }
     S.vcap = S.vbuf ? cap : 0;
-    ESP_LOGI(TAG, "vocal loop buffer %d KB (%d s), free heap %u", S.vcap / 1024,
-             S.vcap / CONFIG_KIT_SAMPLE_RATE, (unsigned)heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    ESP_LOGI(TAG, "%d bpm, %d bars, loop %d ms; vocal buffer %d KB, free heap %u", CONFIG_KIT_BPM,
+             S.bars, (int)(S.loop_len * 1000 / FS), S.vcap / 1024, (unsigned)heap_caps_get_free_size(MALLOC_CAP_8BIT));
     clear_song();
 }
 
-// ---- recording helpers
 static inline int step_at(int pos) { int s = (int)lroundf(pos / S.step_len); return ((s % S.steps) + S.steps) % S.steps; }
-
-// Score how well the hits sit on a 16th grid of the given step length,
-// anchored at the first hit.
-static float grid_score(float step, int t0)
-{
-    float sc = 0;
-    for (int i = 0; i < S.n_ons; i++) {
-        float x = (S.ons[i].t - t0) / step;
-        float dev = fabsf(x - lroundf(x));
-        sc += (1.0f - clampf(dev / 0.3f, 0, 1)) * (0.5f + S.ons[i].vel / 254.0f);
-    }
-    return sc;
-}
-
-// The take ends with a press on the next downbeat, so its musical length is
-// press-to-press minus the pre-roll before the first hit. That picks the bar
-// count; the hits themselves then fine-tune the tempo within +-15 %.
-static void lock_from_take(void)
-{
-    const float fs = FS;
-    int t0 = S.n_ons ? S.ons[0].t : 0;
-    int L = S.rec_samples - t0;
-    if (L < 1.2f * fs) { say("too short"); return; }
-    if (L > S.vcap) { say("too long"); return; }
-    int bars = 1;
-    float bpm = 0;
-    for (int n = 1; n <= LOOP_MAX_BARS; n *= 2) {
-        bpm = 240.0f * n * fs / L;
-        bars = n;
-        if (bpm < 160.0f) break;
-    }
-    float best_bpm = bpm, best = -1;
-    if (S.n_ons >= 3) {
-        for (float t = bpm * 0.85f; t <= bpm * 1.15f; t += 0.25f) {
-            float step = 15.0f * fs / t;
-            float sc = grid_score(step, t0) - 0.15f * S.n_ons * fabsf(t - bpm) / (0.15f * bpm);
-            if (sc > best) { best = sc; best_bpm = t; }
-        }
-    }
-    S.bpm = best_bpm; S.bars = bars; S.steps = bars * 16;
-    S.step_len = 15.0f * fs / S.bpm;
-    S.loop_len = (int)(S.step_len * S.steps + 0.5f);
-    if (S.loop_len > S.vcap) { say("too long"); return; }
-    memset(S.drum_pat, 0, sizeof S.drum_pat);
-    for (int i = 0; i < S.n_ons; i++) {
-        int s = step_at(S.ons[i].t - t0);
-        if (S.ons[i].vel > S.drum_pat[s][S.ons[i].type]) S.drum_pat[s][S.ons[i].type] = S.ons[i].vel;
-    }
-    // keep playing in phase with what was just beatboxed
-    S.pos = (S.rec_samples - t0) % S.loop_len;
-    S.last_step = -1; S.locked = true; S.has[PG_DRUMS] = true;
-    ESP_LOGI(TAG, "locked: %.2f bpm (press said %.1f), %d bars, %d hits, pre-roll %d ms",
-             S.bpm, bpm, S.bars, S.n_ons, (int)(t0 * 1000 / fs));
-}
 
 static void snap_layer(int l)
 {
@@ -206,61 +164,61 @@ static void snap_layer(int l)
     }
 }
 
-static void rec_start(void)
+// ---- recording: arm, start at the loop start, stop at the next one
+static void arm(void)
 {
-    if (S.page != PG_DRUMS && !S.locked) { say("record drums first"); return; }
-    S.rec = true;
-    S.rec_note = -1;
+    if (S.page == PG_VOCAL && (!S.vbuf || S.vcap < S.loop_len)) { say("loop too long for vocal"); return; }
+    S.armed = true;
+    // nothing playing yet: restart the clock one bar out, so the count-in
+    // is exactly one bar and the loop begins with the take
+    if (song_empty()) { S.pos = S.loop_len - (int)(S.step_len * 16); S.last_step = -1; }
+}
+
+static void rec_begin(void)
+{
+    S.armed = false; S.rec = true;
     switch (S.page) {
-    case PG_DRUMS:
-        if (!S.locked) { S.rec_samples = 0; S.n_ons = 0; }
-        else memset(S.drum_pat, 0, sizeof S.drum_pat);
-        break;
-    case PG_VOCAL:
-        if (!S.vbuf) { say("no vocal memory"); S.rec = false; return; }
-        memset(S.vbuf, 0xFF, S.loop_len);
-        break;
+    case PG_DRUMS: memset(S.drum_pat, 0, sizeof S.drum_pat); break;
+    case PG_VOCAL: memset(S.vbuf, 0xFF, S.loop_len); break;
     default:
         memset(S.seq[page_layer[S.page]], 0, LOOP_MAX_STEPS);
         memset(S.pc_w, 0, sizeof S.pc_w);
+        synth_note_off(&S.syn_pb[page_layer[S.page]], -1);
         break;
     }
-    // stop the playback of the layer being replaced
-    if (page_layer[S.page] >= 0) synth_note_off(&S.syn_pb[page_layer[S.page]], -1);
+    S.has[S.page] = false;
 }
 
-static void rec_stop(void)
+static void rec_end(void)
 {
     S.rec = false;
-    switch (S.page) {
-    case PG_DRUMS:
-        if (!S.locked) lock_from_take();
-        break;
-    case PG_BASS:
-        if (!S.scale.locked) {
-            float total = 0;
-            for (int i = 0; i < 12; i++) total += S.pc_w[i];
-            if (total > 10 && scale_detect(S.pc_w, &S.scale)) {
-                snap_layer(L_BASS);
-                char nm[10];
-                ESP_LOGI(TAG, "key locked: %s", scale_name(&S.scale, nm, sizeof nm));
-            }
+    if (S.page == PG_BASS && !S.scale.locked) {
+        float total = 0;
+        for (int i = 0; i < 12; i++) total += S.pc_w[i];
+        if (total > 10 && scale_detect(S.pc_w, &S.scale)) {
+            snap_layer(L_BASS);
+            char nm[10];
+            ESP_LOGI(TAG, "key locked: %s", scale_name(&S.scale, nm, sizeof nm));
         }
-        S.has[PG_BASS] = true;
-        break;
-    case PG_CHORDS: S.has[PG_CHORDS] = true; break;
-    case PG_LEAD:   S.has[PG_LEAD] = true; break;
-    case PG_VOCAL:  S.has[PG_VOCAL] = true; break;
     }
+    S.has[S.page] = true;
+    // a take that lands on the loop start keeps its last note ringing into
+    // step 0; the sequencer plays step 0 on the next pass anyway
+}
+
+static void cancel(void)
+{
+    S.armed = false;
+    if (S.rec) { S.rec = false; say("take cancelled"); }
 }
 
 static void handle_events(void)
 {
     if (S.ev_clear) { S.ev_clear = 0; S.ev_short = S.ev_long = 0; clear_song(); say("song cleared"); }
-    while (S.ev_short) { S.ev_short--; if (S.rec) rec_stop(); else rec_start(); }
+    while (S.ev_short) { S.ev_short--; if (S.armed || S.rec) cancel(); else arm(); }
     while (S.ev_long) {
         S.ev_long--;
-        if (S.rec) rec_stop();
+        cancel();
         live_off();
         S.page = (S.page + 1) % PG_COUNT;
     }
@@ -282,8 +240,20 @@ static void play_layer(int l, int s)
     } else synth_note_on(y, note, 0.9f);
 }
 
+static void click(bool accent)
+{
+    S.click_amp = accent ? 0.5f : 0.3f;
+    S.click_hz = accent ? 2000.0f : 1400.0f;
+    S.click_ph = 0;
+}
+
 static void on_step(int s)
 {
+    // metronome: while armed or recording, and on the drums page until a
+    // beat exists
+    bool metro = S.armed || S.rec || (S.page == PG_DRUMS && !S.has[PG_DRUMS]);
+    if (metro && (s % 4) == 0) click((s % 16) == 0);
+
     bool rec_drums = S.rec && S.page == PG_DRUMS;
     if (!rec_drums)
         for (int t = 0; t < DRUM_N; t++)
@@ -320,7 +290,7 @@ static void live_note_on(int l, int n, int lag)
         synth_note_off(y, -1);
         for (int i = 0; i < 3; i++) synth_note_on(y, tri[i], 0.9f);
     } else synth_note_on(y, n, 0.9f);
-    if (S.rec && S.locked) {
+    if (S.rec) {
         int s = step_at(S.pos - lag);
         S.seq[l][s] = n | SEQ_ATTACK;
     }
@@ -353,7 +323,7 @@ static void drums_page(const float *in, int n, const voice_t *v)
     const float thr = voice_noise_db() + CONFIG_KIT_ONSET_DB;
     if (!S.capturing && S.refr <= 0 && v->db > thr && v->db > S.bg_db + 8.0f) {
         S.capturing = true; S.cap_len = 0;
-        S.cap_pos = (S.locked ? S.pos : S.rec_samples) - HIT_LAG;
+        S.cap_pos = S.pos - HIT_LAG;
         S.cap_db = v->db; S.cap.lo = S.cap.hi = S.cap.all = 0; S.refr = REFRACT_S;
     }
     const float blk = (float)n / FS;
@@ -370,12 +340,8 @@ static void drums_page(const float *in, int n, const voice_t *v)
             S.last_drum = type;
             if (S.rec) {
                 uint8_t v7 = (uint8_t)(vel * 127);
-                if (!S.locked) {
-                    if (S.n_ons < MAX_ONSETS) { S.ons[S.n_ons].t = S.cap_pos < 0 ? 0 : S.cap_pos; S.ons[S.n_ons].type = type; S.ons[S.n_ons].vel = v7; S.n_ons++; }
-                } else {
-                    int s = step_at(S.cap_pos);
-                    if (v7 > S.drum_pat[s][type]) S.drum_pat[s][type] = v7;
-                }
+                int s = step_at(S.cap_pos);
+                if (v7 > S.drum_pat[s][type]) S.drum_pat[s][type] = v7;
             }
         }
     }
@@ -386,12 +352,14 @@ static void IRAM_ATTR process(const float *in, float *out, int n, const voice_t 
     handle_events();
     if (S.msg_samples > 0 && (S.msg_samples -= n) <= 0) S.msg[0] = 0;
 
-    // transport
-    if (S.locked) {
-        int s = (int)(S.pos / S.step_len);
-        if (s >= S.steps) s = S.steps - 1;
-        if (s != S.last_step) { on_step(s); S.last_step = s; }
+    // transport: the loop start is where takes begin and end
+    if (S.pos == 0 || S.last_step < 0) {
+        if (S.rec) rec_end();
+        if (S.armed) rec_begin();
     }
+    int s = (int)(S.pos / S.step_len);
+    if (s >= S.steps) s = S.steps - 1;
+    if (s != S.last_step) { on_step(s); S.last_step = s; }
 
     // live input
     switch (S.page) {
@@ -405,7 +373,7 @@ static void IRAM_ATTR process(const float *in, float *out, int n, const voice_t 
     drums_render(out, n, 0.8f);
     for (int l = 0; l < L_N; l++) { synth_render(&S.syn_pb[l], out, n); synth_render(&S.syn_live[l], out, n); }
     bool vocal_rec = S.rec && S.page == PG_VOCAL;
-    if (S.locked && S.vbuf && (S.has[PG_VOCAL] || vocal_rec)) {
+    if (S.vbuf && (S.has[PG_VOCAL] || vocal_rec)) {
         for (int i = 0; i < n; i++) {
             int p = S.pos + i;
             if (p >= S.loop_len) p -= S.loop_len;
@@ -414,10 +382,19 @@ static void IRAM_ATTR process(const float *in, float *out, int n, const voice_t 
         }
     }
     if (S.page == PG_VOCAL) for (int i = 0; i < n; i++) out[i] += S.live_out[i] * 0.9f;
+    if (S.click_amp > 0.001f) {
+        const float inc = S.click_hz / FS;
+        for (int i = 0; i < n; i++) {
+            out[i] += fast_sin01(S.click_ph) * S.click_amp;
+            S.click_ph += inc; if (S.click_ph >= 1) S.click_ph -= 1;
+            S.click_amp *= S.click_c;
+        }
+    }
 
-    // advance
-    if (S.locked) { S.pos += n; if (S.pos >= S.loop_len) S.pos -= S.loop_len; }
-    else if (S.rec && S.page == PG_DRUMS) S.rec_samples += n;
+    // advance; a take that wraps mid-block ends at the next block start
+    S.pos += n;
+    if (S.pos >= S.loop_len) S.pos -= S.loop_len;
+    if (S.pos < n && S.pos != 0) S.pos = 0;   // land exactly on the loop start
 }
 
 static void status(char *buf, size_t len)
@@ -437,13 +414,13 @@ void looper_event(int ev)
 
 void looper_get_ui(looper_ui_t *u)
 {
-    u->page = S.page; u->rec = S.rec; u->locked = S.locked; u->bpm = S.bpm;
+    u->page = S.page; u->armed = S.armed; u->rec = S.rec; u->bpm = S.bpm;
     u->bars = S.bars; u->steps = S.steps; u->step = S.last_step < 0 ? 0 : S.last_step;
+    u->beats_to_go = S.armed ? (S.loop_len - S.pos + (int)(S.step_len * 4) - 1) / (int)(S.step_len * 4) : 0;
     memcpy(u->has, S.has, sizeof u->has);
     scale_name(&S.scale, u->key, sizeof u->key);
     u->live_note = S.live_note; u->last_drum = S.last_drum; u->drum_lo = S.drum_lo; u->drum_hi = S.drum_hi;
     memcpy(u->msg, S.msg, sizeof u->msg);
-    u->loop_sec_max = S.vcap / CONFIG_KIT_SAMPLE_RATE;
 }
 
 const uint8_t *looper_drum_pattern(void) { return &S.drum_pat[0][0]; }

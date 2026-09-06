@@ -14,17 +14,17 @@ enum { LP_SHORT, LP_LONG, LP_CLEAR };            // button events
 
 typedef struct {
     int   page;
+    bool  armed;             // waiting for the loop to come round
     bool  rec;               // recording on the current page
-    bool  locked;            // tempo and loop length are set
     float bpm;
     int   bars, steps, step; // loop length in bars / 16ths, current 16th
+    int   beats_to_go;       // while armed: beats until recording starts
     bool  has[PG_COUNT];     // layer recorded
     char  key[10];           // "A min" or "free"
     int   live_note;         // what the live voice is playing right now, -1 none
     int   last_drum;         // last classified beatbox hit, -1 none
     float drum_lo, drum_hi;  // its band ratios, for tuning the classifier
     char  msg[24];           // transient message, empty when none
-    int   loop_sec_max;      // longest loop the vocal buffer can hold
 } looper_ui_t;
 
 extern const fx_t fx_looper;

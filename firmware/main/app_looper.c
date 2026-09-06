@@ -1,5 +1,5 @@
 // Looper UI: one button, one screen.
-//   tap            record / stop on the current page
+//   tap            arm a take on the current page (tap again to cancel)
 //   hold 0.5-2.5 s next page (fires on release)
 //   hold 2.5 s     clear the song
 #include "app.h"
@@ -84,13 +84,14 @@ static void draw(const looper_ui_t *u, bool blink, int hold_ms)
 
     snprintf(line, sizeof line, "%d %s", u->page + 1, looper_page_name(u->page));
     oled_text(0, 0, line);
+    char arm[8];
     const char *st = u->rec ? (blink ? "REC" : "   ") : (u->has[u->page] ? "PLAY" : "LIVE");
+    if (u->armed) { snprintf(arm, sizeof arm, "IN %d", u->beats_to_go); st = arm; }
     if (hold_ms > 500) st = hold_ms > 2500 ? "CLEAR" : "NEXT>";
     oled_text(OLED_W - 6 * strlen(st), 0, st);
     oled_hline(0, OLED_W - 1, 8, true);
 
-    if (u->locked) snprintf(line, sizeof line, "%3.0fbpm %db %-5s %2.0f%%", u->bpm, u->bars, u->key, audio_cpu_load() * 100);
-    else snprintf(line, sizeof line, "tap: record %ds max", u->loop_sec_max);
+    snprintf(line, sizeof line, "%3.0fbpm %db %-5s %2.0f%%", u->bpm, u->bars, u->key, audio_cpu_load() * 100);
     oled_text(0, 10, line);
 
     if (u->msg[0]) snprintf(line, sizeof line, "%s", u->msg);
@@ -103,19 +104,17 @@ static void draw(const looper_ui_t *u, bool blink, int hold_ms)
 
     // loop position
     oled_rect(0, 28, OLED_W, 4, false);
-    if (u->locked && u->steps > 0) {
+    {
         int w = (u->step + 1) * (OLED_W - 2) / u->steps;
         oled_rect(1, 29, w, 2, true);
+        for (int b = 1; b < u->bars; b++) oled_vline(b * OLED_W / u->bars, 28, 31, true);
     }
 
     const int y0 = 34, h = OLED_H - y0;
     if (u->page == PG_VOCAL) draw_wave(y0, h);
     else if (u->page == PG_DRUMS) draw_drums(u, y0, h);
     else draw_seq(u, y0, h);
-    if (u->locked && u->steps > 0) {
-        int x = u->step * OLED_W / u->steps;
-        oled_vline(x, y0 - 2, y0 - 1, true);
-    }
+    oled_vline(u->step * OLED_W / u->steps, y0 - 2, y0 - 1, true);
     oled_flush();
 }
 
@@ -150,8 +149,8 @@ void app_looper_run(void)
             looper_ui_t u; voice_t v; char nm[5];
             looper_get_ui(&u);
             audio_get_voice(&v);
-            ESP_LOGI(TAG, "%-6s %s %6.2fbpm %db %-6s | %s %5.1f dB floor %5.1f %s conf %.2f | cpu %2.0f%% | %s",
-                     looper_page_name(u.page), u.rec ? "REC " : "play", u.bpm, u.bars, u.key,
+            ESP_LOGI(TAG, "%-6s %s %-6s | %s %5.1f dB floor %5.1f %s conf %.2f | cpu %2.0f%% | %s",
+                     looper_page_name(u.page), u.rec ? "REC " : (u.armed ? "arm " : "play"), u.key,
                      v.gate ? "VOICE" : "quiet", v.db, voice_noise_db(), v.voiced ? note_name(v.note, nm) : "---", v.conf,
                      audio_cpu_load() * 100, u.msg);
         }

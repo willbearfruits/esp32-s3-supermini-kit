@@ -14,14 +14,14 @@ menu "Kit firmware"
     endchoice
 
     config KIT_LOOP_MAX_SEC
-        int "Looper: longest loop in seconds"
+        int "Looper: vocal buffer size in seconds"
         range 2 60
-        default 12
+        default 24
         depends on KIT_APP_LOOPER
         help
-            Sets the size of the vocal loop buffer (one byte per sample, so
-            12 s at 16 kHz is 192 KB of RAM). Drum takes longer than this are
-            rejected. If the allocation fails the size is halved until it fits.
+            One byte per sample, allocated in PSRAM when present. Must hold
+            the whole loop (bars * 4 * 60 / bpm seconds); if it cannot, the
+            vocal page will not record.
 
     config KIT_MIC_GAIN
         int "Mic gain (linear multiplier)"
@@ -40,9 +40,18 @@ menu "Kit firmware"
             The gate closes 8 dB below it, after a short hold.
 
     config KIT_BPM
-        int "Tempo for the delay and stutter modes"
+        int "Tempo (bpm)"
         range 40 240
-        default 120
+        default 100
+        help
+            The looper's fixed tempo, and the tempo of the instrument's
+            delay and stutter modes.
+
+    config KIT_LOOP_BARS
+        int "Looper: loop length in bars"
+        range 1 8
+        default 2
+        depends on KIT_APP_LOOPER
 
     config KIT_AMP_ALWAYS_ON
         bool "Keep the speaker amp on all the time"
