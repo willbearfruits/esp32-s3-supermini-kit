@@ -68,7 +68,13 @@ audio on speaker vs line-out, move one DAC to I2S port 1 (3 more pins).
 | LCK      | GPIO 8 |
 | DIN      | GPIO 9 |
 | BCK      | GPIO 7 |
-| SCK      | GND (most boards already do this on the PCB) |
+| SCK      | **GND. Required.** Leave it floating and the DAC never locks its clock and stays silent. The purple board does not ground it for you. |
+
+**Two things must be right or the PCM5102A produces no sound at all:**
+
+1. **SCK wired to GND** (see above).
+2. **Solder bridge 3 (XSMT) bridged to H.** Boards ship with it open, and an
+   open XSMT keeps the DAC muted forever.
 
 Check the four solder bridges on the back. They must be:
 
@@ -79,10 +85,18 @@ Check the four solder bridges on the back. They must be:
 | H3L    | XSMT | H |
 | H4L    | FMT  | L |
 
-Boards often ship with one or more of these open. An open XSMT means the DAC
-stays muted forever. This is the one component in the kit that may need a
-soldering iron, so for a solderless kit either buy pre-bridged boards or move
-these straps onto the carrier PCB.
+Each bridge is three pads: H, centre, L. The centre pad is the chip's config
+pin. Bridge it to H to tie it high, or to L to tie it low. The H pads are fed
+from the board's onboard 3.3 V regulator, not straight from VIN, so a
+continuity test from H to VIN reads open. That is normal.
+
+Boards often ship with one or more of these open. This is the one component
+in the kit that may need a soldering iron, so for a solderless kit either buy
+pre-bridged boards or move these straps onto the carrier PCB.
+
+Power note: VIN feeds a 3.3 V regulator on the board. Fed with 3.3 V it drops
+to roughly 3.0 V, which works. Feeding VIN from 5 V is also safe, since only
+the regulator sees it and the I2S inputs are still driven at 3.3 V.
 
 ### MAX98357A amplifier (speaker out)
 

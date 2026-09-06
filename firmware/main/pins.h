@@ -15,7 +15,7 @@
 // --- I2S, one port in full duplex. Clocks shared by mic and both DACs.
 #define PIN_I2S_BCLK  7   // -> INMP441 SCK, PCM5102A BCK, MAX98357A BCLK
 #define PIN_I2S_WS    8   // -> INMP441 WS,  PCM5102A LCK, MAX98357A LRC
-#define PIN_I2S_DOUT  9   // -> PCM5102A DIN, MAX98357A DIN
+#define PIN_I2S_DOUT  9   // -> PCM5102A DIN, MAX98357A DIN. PCM5102A SCK must go to GND and its XSMT bridge to H, or it is silent.
 #define PIN_I2S_DIN   10  // <- INMP441 SD
 
 // --- Speaker amp control

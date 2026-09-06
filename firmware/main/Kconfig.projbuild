@@ -1,4 +1,4 @@
-menu "Kit loopback"
+menu "Kit firmware"
 
     config KIT_MIC_GAIN
         int "Mic gain (linear multiplier)"
