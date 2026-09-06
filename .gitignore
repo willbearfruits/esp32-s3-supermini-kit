@@ -1,0 +1,19 @@
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+# Python
+__pycache__/
+*.pyc
+# KiCad backups / temp
+hardware/**/*-backups/
+hardware/**/*.kicad_prl
+hardware/**/fp-info-cache
+# 3D print slicer temp
+*.3mf.bak
+# ESP-IDF
+firmware/build/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/managed_components/

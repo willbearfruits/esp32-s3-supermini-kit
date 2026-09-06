@@ -1,0 +1,27 @@
+menu "Kit loopback"
+
+    config KIT_MIC_GAIN
+        int "Mic gain (linear multiplier)"
+        range 1 64
+        default 8
+        help
+            The INMP441 is fairly quiet. Samples are multiplied by this
+            before being sent to the DACs. 8 is a sane default for speech.
+
+    config KIT_AMP_ALWAYS_ON
+        bool "Keep the speaker amp on all the time"
+        default n
+        help
+            By default the MAX98357A is only enabled while the encoder button
+            is held (push-to-talk), because mic -> speaker loopback howls when
+            the speaker is near the mic. Enable this if you have no encoder
+            wired yet or want to test the speaker freely.
+
+    config KIT_SAMPLE_RATE
+        int "Sample rate (Hz)"
+        default 16000
+        help
+            Shared by mic and both DACs (they share BCLK/WS). 16000 or 48000
+            are good choices. All three chips accept both.
+
+endmenu
