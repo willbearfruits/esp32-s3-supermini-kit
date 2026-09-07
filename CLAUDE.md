@@ -1,0 +1,93 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## What this is
+
+An open-source, solderless ESP32-S3 SuperMini audio handheld kit: INMP441 mic,
+PCM5102A line-out DAC, MAX98357A speaker amp, SSD1306 OLED, encoder, joystick,
+optional VL53L0X ToF and MPU6050 IMU. The repo will grow into firmware, a KiCad
+carrier PCB, a printable enclosure, BOM and assembly guide. Firmware is MIT,
+hardware will be CERN-OHL-P. Public at github.com/willbearfruits/esp32-s3-supermini-kit.
+
+## Build and flash
+
+ESP-IDF v5.5 lives at `~/esp/esp-idf` (not on PATH by default). Every firmware
+command needs the environment sourced first:
+
+```sh
+. ~/esp/esp-idf/export.sh
+cd firmware
+idf.py set-target esp32s3      # once, or after deleting build/
+idf.py build
+idf.py flash monitor           # board enumerates over native USB (USB Serial/JTAG)
+idf.py menuconfig              # tunables under "Kit loopback"
+```
+
+`sdkconfig` is generated and gitignored; edit `sdkconfig.defaults` for anything
+that must persist. There is no test suite; verification is flashing a board and
+reading the serial log described in README.md. Build logs on failure are under
+`firmware/build/log/`.
+
+## Firmware architecture
+
+Single ESP-IDF app in `firmware/main/`, project name `kit_instrument`, two
+applications selected by the Kconfig choice `KIT_APP` (menuconfig -> Kit
+firmware -> Application): the voice looper (default) and the older eight-mode
+voice instrument. Both share the engine below. The build uses `-O3
+-ffast-math`, PSRAM (2 MB embedded quad) and a custom `partitions.csv`
+(1.5 MB app, 2.4 MB wear-levelled FAT at `/storage`).
+
+- `pins.h` is the canonical pin map and must stay in sync with `docs/pinmap.md`.
+  Joystick on GPIO1/2 (ADC1) + GPIO3, encoder GPIO4/5 + GPIO6, I2S 7-10,
+  amp shutdown 11, I2C 12/13. BOOT (GPIO0) doubles as the encoder push until
+  one is wired; a reset while it is held lands in download mode.
+- `audio.c` owns I2S port 0 full duplex at 32 kHz, 64-frame blocks, 3 DMA
+  descriptors (~6 ms round trip), 32-bit slots. The mic lands in the left
+  slot with junk in the low 8 bits (masked). Input is float, high-passed at
+  80 Hz, fed to `voice.c`, then to `fx_list[mode]->process()`. An fx with
+  `stereo` set writes interleaved L/R. A cycle-counter CPU meter is exposed
+  as `audio_cpu_load()`. Runs pinned to core 1.
+- `voice.c`: level gate with start-up noise calibration and hysteresis, YIN
+  pitch on a decimated 8 kHz copy every 8 ms, median of five, settle/drift
+  note model, `since_onset` for latency compensation. Gate threshold and mic
+  gain are runtime settable.
+- `dsp.h`: RBJ biquads, TPT state variable filter (`svf_set` is cheap enough
+  per sample), `fast_tan`/`fast_sin01`, note helpers. Keep libm out of
+  per-sample loops and keep recirculating paths away from denormals (the S3
+  FPU emulates them in software; `mix.c` adds a 1e-9 offset).
+- Looper (`CONFIG_KIT_APP_LOOPER`): `looper.c` is the engine inside the
+  audio task: up to 8 tracks of kinds drums/bass/keys/lead/vocal, 4 patterns
+  per track chosen by scene (empty pattern falls back to A), arrangement of
+  scenes, fixed grid with count-in, one take = one loop, overdub/replace/undo,
+  swing/humanise, key auto-lock on the first melodic take or fixed. UI talks
+  to it through `looper_action`/`looper_param_*`/`looper_get_ui`; actions are
+  queued and run on the audio thread. `synth.c` (polyBLEP + SVF, presets),
+  `kit.c` (3 synth kits + user WAV kit, beatbox classifier), `tune.c` (hard
+  tune/harmony/robot/raw), `mix.c` (stereo mixer, sends, ping-pong delay,
+  reverb in internal RAM, sidechain, oversampled clip, limiter), `scale.c`.
+- `app_looper.c` is the UI task: `input.c` (encoder via PCNT, joystick via
+  ADC with presence detection, BOOT alias), `imu.c` (MPU6050 tilt), `tof.c`
+  (VL53L0X distance), two-level menu, autosave via `song.c` (state file per
+  slot under `/storage/songs/N`, mu-law vocal files, WAV/MIDI export by
+  real-time bounce), `usbmode.c` (TinyUSB mass storage + MIDI, entered from
+  the menu or by holding the encoder at boot; console and flashing are gone
+  while it runs, hold to leave).
+- Instrument (`CONFIG_KIT_APP_INSTRUMENT`): `app_instrument.c` plus the
+  `fx_*.c` modes; untested at 32 kHz.
+- `selftest.c` runs at boot: I2S pin short test and mic line pull test.
+- `oled.c` is a minimal SSD1306 driver on `esp_lcd` with 5x7 and 2x text,
+  circles, lines, bitmaps. Other I2C addresses: ToF 0x29, IMU 0x68.
+- Adding a source file means listing it in `main/CMakeLists.txt` under the
+  right application. `esp_tinyusb` comes from `main/idf_component.yml`.
+- Reading the serial log from scripts: opening the port toggles DTR/RTS and
+  can reset the chip; `esptool.py --after hard_reset chip_id` puts it back in
+  the app.
+
+## Docs and hardware folders
+
+`docs/pinmap.md` is the wiring reference, including the PCM5102A solder-bridge
+settings (FLT L, DEMP L, XSMT H, FMT L) that trip people up. `docs/pinout.md`,
+`parts/bom.csv`, `3d/`, `images/` and `hardware/{schematic,pcb,manufacturing}`
+were created by the project scaffold and are mostly empty placeholders for the
+PCB and enclosure milestones.

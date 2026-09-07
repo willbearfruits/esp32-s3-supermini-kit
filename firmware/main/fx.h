@@ -2,6 +2,7 @@
 // engine calls process() once per block with mono float input and output.
 #pragma once
 #include <stddef.h>
+#include <stdbool.h>
 #include "voice.h"
 
 typedef struct {
@@ -11,6 +12,7 @@ typedef struct {
     void (*status)(char *buf, size_t len);                               // one OLED line
     void (*note_on)(int note, int vel);                                  // optional, MIDI in
     void (*note_off)(int note);                                          // optional, MIDI in
+    bool stereo;                                                         // process() writes interleaved L/R (2n floats)
 } fx_t;
 
 extern const fx_t fx_vocoder, fx_autotune, fx_guitar_lead, fx_guitar_chords,

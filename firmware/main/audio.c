@@ -37,6 +37,7 @@ static voice_t voice_now;
 static int8_t wave[AUDIO_WAVE_N];
 static volatile float out_peak;
 static volatile float cpu_load;      // fraction of the block budget used, smoothed
+static volatile float mic_gain = 8;
 static biquad_t hp_in;
 
 static void i2s_setup(void)
@@ -69,13 +70,13 @@ static void IRAM_ATTR audio_task(void *arg)
 {
     int32_t *raw = malloc(SAMPLES * sizeof(int32_t));
     float *in = malloc(FRAMES * sizeof(float));
-    float *out = malloc(FRAMES * sizeof(float));
+    float *out = malloc(2 * FRAMES * sizeof(float));
     assert(raw && in && out);
 
     biquad_highpass(&hp_in, 80.0f, 0.707f);
     voice_init();
     fx_list[mode_cur]->init();
-    const float in_gain = (float)CONFIG_KIT_MIC_GAIN / 8388608.0f;   // 24-bit -> float
+    mic_gain = CONFIG_KIT_MIC_GAIN;
 
     while (1) {
         size_t got = 0;
@@ -85,7 +86,7 @@ static void IRAM_ATTR audio_task(void *arg)
 
         // INMP441: left slot, top 24 bits are data, low 8 are junk
         for (int f = 0; f < frames; f++) {
-            float x = (float)(raw[2 * f] >> 8) * in_gain;
+            float x = (float)(raw[2 * f] >> 8) * (mic_gain / 8388608.0f);
             in[f] = biquad_run(&hp_in, x);
         }
 
@@ -102,17 +103,19 @@ static void IRAM_ATTR audio_task(void *arg)
         usbmode_track_voice(&v);
 #endif
 
-        fx_list[mode_cur]->process(in, out, frames, &v);
+        const fx_t *fx = fx_list[mode_cur];
+        fx->process(in, out, frames, &v);
 
         float pk = 0;
         for (int f = 0; f < frames; f++) {
-            float y = softclip(out[f]) * 0.9f;
-            float a = fabsf(y);
+            float l, r;
+            if (fx->stereo) { l = clampf(out[2 * f], -1, 1) * 0.95f; r = clampf(out[2 * f + 1], -1, 1) * 0.95f; }
+            else l = r = softclip(out[f]) * 0.9f;
+            float a = fabsf(l) > fabsf(r) ? fabsf(l) : fabsf(r);
             if (a > pk) pk = a;
-            int32_t s = (int32_t)(y * 2147483000.0f);
-            raw[2 * f] = s;
-            raw[2 * f + 1] = s;
-            wave[f * AUDIO_WAVE_N / frames] = (int8_t)(y * 120.0f);
+            raw[2 * f] = (int32_t)(l * 2147483000.0f);
+            raw[2 * f + 1] = (int32_t)(r * 2147483000.0f);
+            wave[f * AUDIO_WAVE_N / frames] = (int8_t)((l + r) * 60.0f);
         }
         if (pk > out_peak) out_peak = pk;
         float used = (float)(esp_cpu_get_cycle_count() - c0) / (frames * (CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ * 1e6f / CONFIG_KIT_SAMPLE_RATE));
@@ -146,6 +149,8 @@ void audio_get_voice(voice_t *o) { *o = voice_now; }
 void audio_get_wave(int8_t *o) { memcpy(o, wave, AUDIO_WAVE_N); }
 float audio_out_peak(void) { float p = out_peak; out_peak = 0; return p; }
 float audio_cpu_load(void) { return cpu_load; }
+void  audio_set_mic_gain(float g) { mic_gain = g; }
+float audio_get_mic_gain(void) { return mic_gain; }
 
 void audio_midi_note_on(int note, int vel)
 {

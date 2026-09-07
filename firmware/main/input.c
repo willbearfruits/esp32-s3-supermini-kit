@@ -6,6 +6,8 @@
 #include "driver/pulse_cnt.h"
 #include "esp_adc/adc_oneshot.h"
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "esp_log.h"
 #include "sdkconfig.h"
 
@@ -59,9 +61,12 @@ void input_init(void)
     ESP_ERROR_CHECK(adc_oneshot_config_channel(adc, ADC_CHANNEL_0, &cc));   // GPIO1
     ESP_ERROR_CHECK(adc_oneshot_config_channel(adc, ADC_CHANNEL_1, &cc));   // GPIO2
 
-    // joystick present? both axes must rest near mid-scale and sit still
+    // joystick present? both axes must rest near mid-scale and sit very
+    // still: a pot wiper is low impedance and reads within a few counts,
+    // a floating pin wanders by tens of counts
     int minx = 9999, maxx = 0, miny = 9999, maxy = 0; long sx = 0, sy = 0;
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 64; i++) {
+        if (i % 8 == 7) vTaskDelay(1);
         int x = adc_read(ADC_CHANNEL_0), y = adc_read(ADC_CHANNEL_1);
         if (x < minx) minx = x;
         if (x > maxx) maxx = x;
@@ -69,8 +74,8 @@ void input_init(void)
         if (y > maxy) maxy = y;
         sx += x; sy += y;
     }
-    jx0 = sx / 16.0f; jy0 = sy / 16.0f;
-    has_joy = jx0 > 1000 && jx0 < 3100 && jy0 > 1000 && jy0 < 3100 && maxx - minx < 160 && maxy - miny < 160;
+    jx0 = sx / 64.0f; jy0 = sy / 64.0f;
+    has_joy = jx0 > 1200 && jx0 < 2900 && jy0 > 1200 && jy0 < 2900 && maxx - minx < 24 && maxy - miny < 24;
     ESP_LOGI(TAG, "joystick %s (centre %d,%d spread %d,%d)", has_joy ? "found" : "not found",
              (int)jx0, (int)jy0, maxx - minx, maxy - miny);
 }
@@ -124,6 +129,10 @@ void input_poll(input_ev_t *ev)
     ev->has_joy = has_joy;
     if (has_joy) {
         float x = axis(adc_read(ADC_CHANNEL_0), jx0), y = axis(adc_read(ADC_CHANNEL_1), jy0);
+        // a stick nobody touches returns to centre; a floating pin does not
+        static int off_centre;
+        if (fabsf(x) > 0.5f || fabsf(y) > 0.5f) { if (++off_centre > 800) { has_joy = false; ESP_LOGW(TAG, "joystick pinned off centre for 8 s, ignoring it"); } }
+        else off_centre = 0;
         jx_f += 0.4f * (x - jx_f); jy_f += 0.4f * (y - jy_f);
         ev->jx = jx_f; ev->jy = jy_f;
         flick(jx_f, &ev->flick_l, &ev->flick_r, 0);

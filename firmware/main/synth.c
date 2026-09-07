@@ -97,3 +97,35 @@ void IRAM_ATTR synth_render(synth_t *s, float *out, int n)
         }
     }
 }
+
+static const synth_cfg_t PRESETS[SK_N][SYNTH_PRESETS] = {
+    { // bass
+      { .a_ms = 4, .d_ms = 180, .sus = 0.7f, .r_ms = 60, .cutoff = 150, .env_hz = 900, .vel_hz = 300, .q = 1.2f, .detune_cents = 4, .sub = 0.6f, .square = false, .glide_ms = 25, .gain = 0.45f },
+      { .a_ms = 2, .d_ms = 120, .sus = 0.2f, .r_ms = 40, .cutoff = 120, .env_hz = 2200, .vel_hz = 600, .q = 3.5f, .detune_cents = 0, .sub = 0.3f, .square = false, .glide_ms = 60, .gain = 0.4f },
+      { .a_ms = 3, .d_ms = 90, .sus = 0.0f, .r_ms = 80, .cutoff = 300, .env_hz = 1800, .vel_hz = 500, .q = 1.0f, .detune_cents = 6, .sub = 0.5f, .square = true, .glide_ms = 0, .gain = 0.42f },
+    },
+    { // keys (poly)
+      { .a_ms = 30, .d_ms = 400, .sus = 0.8f, .r_ms = 250, .cutoff = 400, .env_hz = 1500, .vel_hz = 500, .q = 0.8f, .detune_cents = 9, .sub = 0, .square = false, .glide_ms = 0, .gain = 0.16f },
+      { .a_ms = 250, .d_ms = 800, .sus = 1.0f, .r_ms = 900, .cutoff = 250, .env_hz = 600, .vel_hz = 200, .q = 0.7f, .detune_cents = 14, .sub = 0.2f, .square = false, .glide_ms = 0, .gain = 0.14f },
+      { .a_ms = 2, .d_ms = 250, .sus = 0.3f, .r_ms = 200, .cutoff = 900, .env_hz = 2500, .vel_hz = 800, .q = 1.4f, .detune_cents = 3, .sub = 0, .square = true, .glide_ms = 0, .gain = 0.15f },
+    },
+    { // lead
+      { .a_ms = 6, .d_ms = 150, .sus = 0.75f, .r_ms = 120, .cutoff = 800, .env_hz = 2500, .vel_hz = 800, .q = 1.5f, .detune_cents = 12, .sub = 0.25f, .square = true, .glide_ms = 40, .gain = 0.3f },
+      { .a_ms = 4, .d_ms = 200, .sus = 0.8f, .r_ms = 150, .cutoff = 1200, .env_hz = 3000, .vel_hz = 1000, .q = 0.9f, .detune_cents = 18, .sub = 0, .square = false, .glide_ms = 30, .gain = 0.28f },
+      { .a_ms = 15, .d_ms = 300, .sus = 0.9f, .r_ms = 300, .cutoff = 500, .env_hz = 400, .vel_hz = 200, .q = 0.6f, .detune_cents = 0, .sub = 0, .square = false, .glide_ms = 80, .gain = 0.32f },
+    },
+};
+static const char *PRESET_NAMES[SK_N][SYNTH_PRESETS] = {
+    { "SUB", "ACID", "PLUCK" }, { "KEYS", "PAD", "STAB" }, { "SQUARE", "SAW", "SOFT" },
+};
+const synth_cfg_t *synth_preset(int kind, int variant)
+{
+    if (kind < 0 || kind >= SK_N) kind = 0;
+    if (variant < 0 || variant >= SYNTH_PRESETS) variant = 0;
+    return &PRESETS[kind][variant];
+}
+const char *synth_preset_name(int kind, int variant)
+{
+    if (kind < 0 || kind >= SK_N || variant < 0 || variant >= SYNTH_PRESETS) return "?";
+    return PRESET_NAMES[kind][variant];
+}

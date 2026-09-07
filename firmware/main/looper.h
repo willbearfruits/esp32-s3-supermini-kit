@@ -1,53 +1,64 @@
-// Voice looper engine. Five layers on a fixed grid: drums (beatbox), bass,
-// chords, lead (hummed or whistled), vocal (hyperpop autotune). One take is
-// one loop, counted in by the metronome. Everything the UI needs goes
-// through this header; the engine runs inside the audio task.
+// Voice looper engine: up to 8 tracks of five kinds on a fixed grid, four
+// patterns per track selected by scene, an arrangement of scenes, stereo
+// mix. One take is one loop, counted in by the metronome. The engine runs
+// inside the audio task; the UI talks to it through this header.
 #pragma once
 #include <stdbool.h>
 #include <stdint.h>
 #include "fx.h"
 #include "kit.h"
 
-enum { PG_DRUMS, PG_BASS, PG_CHORDS, PG_LEAD, PG_VOCAL, PG_COUNT };
-
+#define TRACK_N        8
+#define PAT_N          4
 #define LOOP_MAX_BARS  8
 #define LOOP_MAX_STEPS (LOOP_MAX_BARS * 16)
 #define SEQ_ATTACK     0x80
+#define VOCAL_SLOTS    4
+#define ARR_N          8
 
-// actions, from the UI task
-enum { ACT_TAP, ACT_CANCEL, ACT_NEXT_PAGE, ACT_PREV_PAGE, ACT_UNDO, ACT_CLEAR_LAYER,
-       ACT_MUTE, ACT_CLEAR_SONG, ACT_REPLACE };
-// parameters, integer valued
-enum { PR_VOL, PR_REV, PR_DLY, PR_SWING, PR_HUMAN, PR_PUMP, PR_DRIVE, PR_KIT, PR_BPM, PR_BARS, PR_N };
+enum { K_DRUMS, K_BASS, K_KEYS, K_LEAD, K_VOCAL, K_N };
+
+enum { ACT_TAP, ACT_CANCEL, ACT_NEXT_TRACK, ACT_PREV_TRACK, ACT_UNDO, ACT_CLEAR_PAT, ACT_MUTE, ACT_SOLO,
+       ACT_CLEAR_SONG, ACT_REPLACE, ACT_SCENE_UP, ACT_SCENE_DOWN, ACT_ADD_TRACK, ACT_DEL_TRACK,
+       ACT_COPY_A, ACT_SONG_MODE, ACT_NEW_SONG };
+
+enum { PR_VOL, PR_PAN, PR_REV, PR_DLY, PR_LOWCUT, PR_TONE, PR_SOUND,
+       PR_KIT, PR_SWING, PR_HUMAN, PR_BPM, PR_BARS, PR_KEY, PR_COUNTIN, PR_METRO, PR_QUANT, PR_MICGAIN, PR_GATE, PR_ADDKIND,
+       PR_PUMP, PR_DRIVE, PR_MTONE,
+       PR_SCENE, PR_ARR0, PR_ARR1, PR_ARR2, PR_ARR3, PR_ARR4, PR_ARR5, PR_ARR6, PR_ARR7, PR_ARR_REP,
+       PR_N };
 
 typedef struct {
-    int   page;
+    int   track, n_tracks, kind;
+    char  track_name[16], sound[12];
+    int   scene, scene_next;          // current, queued (-1 none)
+    bool  song_mode; int arr_pos;
     bool  armed, rec, replace;
     float bpm;
-    int   bars, steps, step, beat;
-    int   beats_to_go;
-    bool  has[PG_COUNT], mute[PG_COUNT];
+    int   bars, steps, step, beat, beats_to_go;
+    struct { uint8_t kind; bool has, mute, solo; } tr[TRACK_N];
     char  key[10];
     int   live_note, last_drum;
     float drum_lo, drum_hi;
     char  msg[24];
-    float level;              // master peak 0..1 since last call
-    float gr;                 // limiter gain reduction 0..1
-    int   bounce;             // 0 idle, else pass in progress
-    int   undo_page;          // page an undo would restore, -1 none
+    float level, gr;
+    int   bounce;
+    bool  can_undo;
 } looper_ui_t;
 
-// persistent song state, saved as one blob
+// persistent song, saved as a file
 typedef struct {
     uint32_t magic;
     uint16_t bpm10;
-    uint8_t  bars, page, swing, human, pump, drive10, kit;
-    uint8_t  root, minor, scale_locked;
-    struct { uint8_t has, mute, vol, rev, dly; } layer[PG_COUNT];
-    uint8_t  drum_pat[LOOP_MAX_STEPS][DRUM_N];
-    uint8_t  seq[3][LOOP_MAX_STEPS];
+    uint8_t  bars, cur_track, scene, count_in, metro, quant8, swing, human, pump, drive10, kit, key, mic_gain, n_tracks;
+    int8_t   mtone, gate_db;
+    uint8_t  root, minor, scale_locked, song_mode, arr_rep;
+    uint8_t  arr[ARR_N];
+    struct { uint8_t kind, sound, mute, solo, vol, rev, dly, lowcut; int8_t pan, tone; uint8_t has[PAT_N]; } tr[TRACK_N];
+    uint8_t  drum[TRACK_N][PAT_N][LOOP_MAX_STEPS][DRUM_N];
+    uint8_t  seq[TRACK_N][PAT_N][LOOP_MAX_STEPS];
 } song_state_t;
-#define SONG_MAGIC 0x4B495431   // "KIT1"
+#define SONG_MAGIC 0x4B495432   // "KIT2"
 
 enum { DIRTY_STATE = 1, DIRTY_VOCAL = 2 };
 
@@ -59,26 +70,32 @@ void looper_param_set(int p, int v);
 void looper_param_step(int p, int dir);
 const char *looper_param_name(int p);
 void looper_param_text(int p, char *buf, int len);
-void looper_expr(float cut, float bend, float vib, float space);   // cutoff multiplier, semitones, 0..1, 0..1
+void looper_expr(float cut, float bend, float vib, float space);
 void looper_midi_note(int note, int vel, bool on);
 void looper_get_ui(looper_ui_t *out);
-const uint8_t *looper_drum_pattern(void);
-const uint8_t *looper_seq(int page);
-const char *looper_page_name(int page);
+const uint8_t *looper_drum_pattern(void);     // current track, pattern of the current scene
+const uint8_t *looper_seq(void);
+const char *looper_kind_name(int kind);
+bool looper_ready(void);
 
-// persistence (UI task)
-int  looper_take_dirty(void);                       // returns and clears DIRTY_* bits
+int  looper_take_dirty(void);
 void looper_get_state(song_state_t *st);
-void looper_set_state(const song_state_t *st);      // before or after audio start
-uint8_t *looper_vocal_buf(void);                    // mu-law, loop_len bytes
+void looper_set_state(const song_state_t *st);
+// vocal audio: slot buffers, mu-law, loop_len bytes. dirty_vocal reports which (track,pat)
 int  looper_loop_len(void);
-void looper_vocal_loaded(void);                     // vocal buffer filled from storage
-// clock for MIDI out: called from the audio task, 24 per beat
+int  looper_vocal_slot(int track, int pat);   // -1 none
+uint8_t *looper_vocal_data(int slot);
+int  looper_vocal_alloc(int track, int pat);  // for loading; -1 when full
+void looper_vocal_loaded(int track, int pat);
 void looper_set_clock_cb(void (*cb)(void));
+int  looper_vocal_take_dirty(void);               // bitmask of slots changed since last call
+void looper_vocal_owner(int slot, int *track, int *pat);
+int  looper_track_kind(int t);
+bool looper_track_has(int t, int p);
 
-// export by bouncing in real time: pass 1 captures drums, bass, chords;
-// pass 2 captures lead, vocal and the master. Buffers are int16, loop_len each.
-bool looper_bounce_start(int pass);
+// export by real-time bounce: pass k captures tracks 3k..3k+2 (or the master when
+// first >= n_tracks). Buffers are int16, loop_len each.
+bool looper_bounce_start(int first);
 bool looper_bounce_done(void);
 int16_t *looper_bounce_buf(int i);
 void looper_bounce_release(void);

@@ -15,13 +15,12 @@ menu "Kit firmware"
 
     config KIT_LOOP_MAX_SEC
         int "Looper: vocal buffer size in seconds"
-        range 2 60
-        default 24
+        range 2 16
+        default 8
         depends on KIT_APP_LOOPER
         help
-            One byte per sample, allocated in PSRAM when present. Must hold
-            the whole loop (bars * 4 * 60 / bpm seconds); if it cannot, the
-            vocal page will not record.
+            Longest loop a vocal pattern can hold, one byte per sample in
+            PSRAM. Four vocal patterns are kept, so 8 s costs 1 MB.
 
     config KIT_MIC_GAIN
         int "Mic gain (linear multiplier)"

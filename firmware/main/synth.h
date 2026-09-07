@@ -39,3 +39,9 @@ void synth_note_on(synth_t *s, int note, float vel);
 void synth_note_off(synth_t *s, int note);        // -1: all
 void synth_render(synth_t *s, float *out, int n); // adds into out
 void synth_set_expr(synth_t *s, float bend, float cut_mul, float vib);
+
+// presets: kind (bass, keys, lead) x variant
+enum { SK_BASS, SK_KEYS, SK_LEAD, SK_N };
+#define SYNTH_PRESETS 3
+const synth_cfg_t *synth_preset(int kind, int variant);
+const char *synth_preset_name(int kind, int variant);

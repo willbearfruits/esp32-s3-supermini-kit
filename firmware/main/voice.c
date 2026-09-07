@@ -31,6 +31,9 @@ static float hist[MED_N];
 static int   hist_n;
 static float d[TAU_MAX + 1];
 static voice_t last;
+static float gate_db = CONFIG_KIT_GATE_DB;
+void voice_set_gate_db(float db) { gate_db = db; }
+float voice_get_gate_db(void) { return gate_db; }
 
 void voice_init(void)
 {
@@ -108,7 +111,7 @@ void voice_feed(const float *x, int n, voice_t *v)
     else noise_db += (1 - expf(-blk / 20.0f)) * (db - noise_db);
     if (noise_db < -90) noise_db = -90;
 
-    float open_db = CONFIG_KIT_GATE_DB;
+    float open_db = gate_db;
     if (noise_db + 15 > open_db) open_db = noise_db + 15;
     const float close_db = open_db - 8;
     const int hold_blocks = (int)(0.12f * FS / n);
