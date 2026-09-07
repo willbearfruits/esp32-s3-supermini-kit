@@ -7,8 +7,10 @@ a joystick, and room for a distance sensor and an IMU.
 This repo will grow into everything needed to build one or sell one: firmware,
 carrier PCB, enclosure, bill of materials, and assembly instructions.
 
-**Status: milestone 0.** The pin map is decided and the first firmware proves
-the shared I2S audio bus by looping the mic straight to the outputs.
+**Status: milestone 4, the voice looper.** Hum, beatbox or whistle into a
+handheld and get a track: up to 8 tracks on a fixed grid, scenes and an
+arrangement, stereo mix, autosave, WAV/MIDI export over a USB drive mode.
+The older eight-mode voice instrument is still selectable at build time.
 
 ## Parts
 
@@ -55,26 +57,49 @@ release BOOT, then flash again.
 Tunables live under `idf.py menuconfig` -> `Kit loopback`: mic gain, sample
 rate, and whether the speaker amp is always on.
 
-## What milestone 0 does
+## Using the looper
 
-1. Opens I2S port 0 in full duplex at 16 kHz, 32-bit stereo.
-2. Reads the mic, multiplies by the gain, copies left to right.
-3. Writes the result back out to both DACs.
-4. Prints a peak meter over USB once a second.
-5. Keeps the speaker amp muted unless the encoder button is held. Mic-to-speaker
-   loopback howls if the speaker is near the mic. Use headphones on the
-   PCM5102A to hear it cleanly, or set `KIT_AMP_ALWAYS_ON` in menuconfig.
+One encoder (BOOT stands in for its push until one is wired), one joystick,
+optional tilt sensor and distance sensor. Same grammar everywhere:
 
-Expected serial output:
+| Gesture | Does |
+|---------|------|
+| turn | next / previous track (in the menu: move, or change a value) |
+| push | record a take on this track; push again to cancel |
+| hold 0.6 s | menu (in the menu: back) |
+| hold 3 s | clear all patterns |
+| joystick tilt | expression: brightness and pitch bend |
+| joystick click | mute this track |
+| joystick flick up / down | next / previous scene, switched at the loop start |
+| joystick flick left / right | track |
+| body tilt | vibrato (roll) and brightness (pitch) |
+| hand over the distance sensor | space (reverb send) |
 
-```
-I (312) loopback: kit loopback: 16000 Hz, gain x8, amp on while encoder button held
-I (1312) loopback: peak  -42.3 dBFS |#########                     |
-I (2312) loopback: peak  -18.7 dBFS |####################          |
-```
+A take is exactly one loop. Push, the metronome counts in one bar (or waits
+for the loop to come round once something is playing), the take records for
+one loop and stops by itself. Takes overdub by default; Take -> Replace next
+or Undo change that. Drums are beatboxed (kick / snare / hat by the sound's
+band energies), bass, keys and lead are hummed or whistled and snapped to
+the grid and the key, the vocal track is a hard-tuned voice recorded as
+audio. The key locks on the first melodic take, or set it in Song -> Key.
 
-If the meter never moves, check the mic's SD wire and that L/R is tied to GND.
-If the meter moves but you hear nothing on the PCM5102A, check its XSMT bridge.
+Menu sections: **Take** (undo, replace, copy A here, clear), **Track**
+(sound, volume, pan, reverb, delay, low cut, tone, mute, solo, add / delete
+track), **Scene** (scene, song mode, arrangement), **Song** (tempo, bars,
+key, count-in, metronome, quantise, swing, humanise, kit, mic gain, gate),
+**Master** (pump, drive, tone), **Files** (export, save / load slot, new,
+USB drive).
+
+USB drive mode (Files -> USB drive, or hold the encoder at power-up) shows
+the storage partition to the PC and makes the board a MIDI device. Drop
+`kick.wav`, `snare.wav`, `hat.wav` into `kits/user/` for your own drum kit;
+exports land in `export/` as one WAV per track, a stereo `mix.wav`,
+`song.mid` and `song.txt`. Hold the button to return. Flashing needs the
+board out of USB mode (or BOOT held at power-up).
+
+The serial log prints the current track, scene, key, the voice tracker's
+level and confidence, the DSP load with a per-section breakdown, and which
+inputs were detected.
 
 ## Roadmap
 
