@@ -4,7 +4,9 @@
 #include "fx.h"
 #include "dsp.h"
 #include "pins.h"
-#include "usb_midi.h"
+#ifdef CONFIG_KIT_APP_LOOPER
+#include "usbmode.h"
+#endif
 
 #include <string.h>
 #include <stdlib.h>
@@ -96,7 +98,9 @@ static void IRAM_ATTR audio_task(void *arg)
         voice_t v;
         voice_feed(in, frames, &v);
         voice_now = v;
-        usb_midi_track_voice(&v);
+#ifdef CONFIG_KIT_APP_LOOPER
+        usbmode_track_voice(&v);
+#endif
 
         fx_list[mode_cur]->process(in, out, frames, &v);
 

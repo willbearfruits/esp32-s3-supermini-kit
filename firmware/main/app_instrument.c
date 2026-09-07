@@ -6,7 +6,6 @@
 #include "dsp.h"
 #include "oled.h"
 #include "pins.h"
-#include "usb_midi.h"
 
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
@@ -37,7 +36,6 @@ static void draw(void)
     if (v.voiced) snprintf(line, sizeof line, "%-3s %4.0fHz %3.0fdB", note_name(v.note, nm), v.freq, v.db);
     else snprintf(line, sizeof line, "%s %3.0fdB", v.gate ? "..." : "---", v.db);
     oled_text(0, 21, line);
-    oled_text(OLED_W - 5 * 6, 21, usb_midi_connected() ? "MIDI" : "    ");
 
     float pk = audio_out_peak();
     float db = pk > 1e-5f ? 20 * log10f(pk) : -60;
@@ -76,7 +74,6 @@ void app_instrument_run(void)
             if (stable == 1) {
                 int next = (audio_get_mode() + 1) % fx_count;
                 audio_set_mode(next);
-                usb_midi_program_change(next);
             }
         }
         int64_t now = esp_timer_get_time();
@@ -85,10 +82,9 @@ void app_instrument_run(void)
             last_log = now;
             voice_t v; char nm[5];
             audio_get_voice(&v);
-            ESP_LOGI(TAG, "%-13s %s %5.1f dB  %s %6.1f Hz conf %.2f  midi %s",
+            ESP_LOGI(TAG, "%-13s %s %5.1f dB  %s %6.1f Hz conf %.2f",
                      fx_list[audio_get_mode()]->name, v.gate ? "VOICE" : "quiet", v.db,
-                     v.voiced ? note_name(v.note, nm) : "---", v.freq, v.conf,
-                     usb_midi_connected() ? "on" : "off");
+                     v.voiced ? note_name(v.note, nm) : "---", v.freq, v.conf);
         }
         vTaskDelay(pdMS_TO_TICKS(10));
     }

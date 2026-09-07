@@ -31,9 +31,11 @@ typedef struct {
     synth_voice_t v[SYNTH_MAX_VOICES];
     int           nv;
     uint32_t      clock;
+    float         bend, cut_mul, vib, lfo;   // expression: semitones, cutoff multiplier, vibrato depth
 } synth_t;
 
 void synth_init(synth_t *s, const synth_cfg_t *cfg, int voices);
 void synth_note_on(synth_t *s, int note, float vel);
 void synth_note_off(synth_t *s, int note);        // -1: all
 void synth_render(synth_t *s, float *out, int n); // adds into out
+void synth_set_expr(synth_t *s, float bend, float cut_mul, float vib);

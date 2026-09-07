@@ -22,6 +22,7 @@ void synth_init(synth_t *s, const synth_cfg_t *cfg, int voices)
     memset(s, 0, sizeof *s);
     s->cfg = *cfg;
     s->nv = voices > SYNTH_MAX_VOICES ? SYNTH_MAX_VOICES : voices;
+    s->cut_mul = 1;
     for (int i = 0; i < s->nv; i++) s->v[i].note = -1;
 }
 
@@ -54,9 +55,16 @@ void synth_note_off(synth_t *s, int note)
         if (s->v[i].stage && s->v[i].stage < 4 && (note < 0 || s->v[i].note == note)) s->v[i].stage = 4;
 }
 
+void synth_set_expr(synth_t *s, float bend, float cut_mul, float vib)
+{
+    s->bend = bend; s->cut_mul = cut_mul; s->vib = vib;
+}
+
 void IRAM_ATTR synth_render(synth_t *s, float *out, int n)
 {
     const synth_cfg_t *c = &s->cfg;
+    const float fmul = powf(2.0f, s->bend / 12.0f);
+    const float lfo_inc = 5.5f / FS;
     const float a_inc = 1.0f / (c->a_ms * 0.001f * FS + 1);
     const float d_c = 1.0f - expf(-1000.0f / (c->d_ms * FS + 1));
     const float r_c = 1.0f - expf(-1000.0f / (c->r_ms * FS + 1));
@@ -77,13 +85,14 @@ void IRAM_ATTR synth_render(synth_t *s, float *out, int n)
             }
             if (!v->stage) break;
             v->freq += v->glide_c * (v->freq_t - v->freq);
-            float dt = v->freq * inv_fs;
+            s->lfo += lfo_inc; if (s->lfo >= 1) s->lfo -= 1;
+            float dt = v->freq * inv_fs * fmul * (1.0f + s->vib * 0.025f * fast_sin01(s->lfo));
             float y = osc(v->ph1, dt, c->square) + osc(v->ph2, dt * det, c->square);
             if (c->sub > 0) y += c->sub * osc(v->phs, dt * 0.5f, true);
             v->ph1 += dt; if (v->ph1 >= 1) v->ph1 -= 1;
             v->ph2 += dt * det; if (v->ph2 >= 1) v->ph2 -= 1;
             v->phs += dt * 0.5f; if (v->phs >= 1) v->phs -= 1;
-            svf_set(&v->lpf, clampf(fc_base + c->env_hz * v->env, 40.0f, SVF_MAX_HZ), c->q);
+            svf_set(&v->lpf, clampf((fc_base + c->env_hz * v->env) * s->cut_mul, 40.0f, SVF_MAX_HZ), c->q);
             out[k] += svf_run(&v->lpf, y, NULL, NULL) * v->env * g;
         }
     }

@@ -1,7 +1,0 @@
-# Add-on defaults for the USB MIDI build:
-#   idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.defaults.usbmidi" build
-# TinyUSB owns the USB port, so the console must not be USB Serial/JTAG.
-CONFIG_KIT_USB_MIDI=y
-CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=n
-CONFIG_ESP_CONSOLE_UART_DEFAULT=y
-CONFIG_ESP_CONSOLE_SECONDARY_NONE=y

@@ -14,7 +14,7 @@
 #include "audio.h"
 #include "fx.h"
 #include "selftest.h"
-#include "usb_midi.h"
+#include "song.h"
 #include "app.h"
 
 static const char *TAG = "kit";
@@ -50,7 +50,6 @@ static i2c_master_bus_handle_t i2c_setup(void)
 
 void app_main(void)
 {
-    usb_midi_init();                 // console moves to USB CDC from here on (opt-in build)
     vTaskDelay(pdMS_TO_TICKS(300));
 #ifdef CONFIG_KIT_APP_LOOPER
     ESP_LOGI(TAG, "kit voice looper, %d Hz", CONFIG_KIT_SAMPLE_RATE);
@@ -65,10 +64,13 @@ void app_main(void)
     if (oled_init(bus, OLED_ADDR) == ESP_OK) ESP_LOGI(TAG, "OLED up");
     else ESP_LOGW(TAG, "no OLED, continuing without display");
 
+#ifdef CONFIG_KIT_APP_LOOPER
+    song_init();
+#endif
     audio_start();
 
 #ifdef CONFIG_KIT_APP_LOOPER
-    app_looper_run();
+    app_looper_run(bus);
 #else
     app_instrument_run();
 #endif

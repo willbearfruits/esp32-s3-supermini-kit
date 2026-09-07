@@ -1,4 +1,6 @@
 #include "oled.h"
+#include <math.h>
+#include <stdlib.h>
 
 #include <string.h>
 #include "esp_lcd_panel_io.h"
@@ -94,7 +96,7 @@ void oled_rect(int x, int y, int w, int h, bool fill)
     }
 }
 
-void oled_text(int x, int y, const char *s)
+void oled_text_c(int x, int y, const char *s, bool on)
 {
     for (; *s; s++, x += 6) {
         unsigned char c = (unsigned char)*s;
@@ -103,10 +105,57 @@ void oled_text(int x, int y, const char *s)
         for (int col = 0; col < 5; col++) {
             uint8_t bits = g[col];
             for (int row = 0; row < 7; row++) {
-                if (bits & (1 << row)) oled_pixel(x + col, y + row, true);
+                if (bits & (1 << row)) oled_pixel(x + col, y + row, on);
             }
         }
     }
+}
+void oled_text(int x, int y, const char *s) { oled_text_c(x, y, s, true); }
+
+void oled_text2(int x, int y, const char *s)
+{
+    for (; *s; s++, x += 12) {
+        unsigned char c = (unsigned char)*s;
+        if (c < 0x20 || c > 0x7F) c = '?';
+        const uint8_t *g = font5x7[c - 0x20];
+        for (int col = 0; col < 5; col++) {
+            uint8_t bits = g[col];
+            for (int row = 0; row < 7; row++) {
+                if (bits & (1 << row)) oled_rect(x + 2 * col, y + 2 * row, 2, 2, true);
+            }
+        }
+    }
+}
+
+void oled_circle(int cx, int cy, int r, bool fill)
+{
+    for (int dy = -r; dy <= r; dy++) {
+        int dx = (int)(sqrtf((float)(r * r - dy * dy)) + 0.5f);
+        if (fill) oled_hline(cx - dx, cx + dx, cy + dy, true);
+        else { oled_pixel(cx - dx, cy + dy, true); oled_pixel(cx + dx, cy + dy, true); }
+    }
+    if (!fill) { oled_pixel(cx, cy - r, true); oled_pixel(cx, cy + r, true); }
+}
+
+void oled_line(int x0, int y0, int x1, int y1, bool on)
+{
+    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    int err = dx + dy;
+    while (1) {
+        oled_pixel(x0, y0, on);
+        if (x0 == x1 && y0 == y1) break;
+        int e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x0 += sx; }
+        if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+}
+
+void oled_bitmap(int x, int y, int w, int h, const uint8_t *rows, bool on)
+{
+    for (int r = 0; r < h; r++)
+        for (int c = 0; c < w; c++)
+            if (rows[r] & (0x80 >> c)) oled_pixel(x + c, y + r, on);
 }
 
 void oled_flush(void)

@@ -61,14 +61,12 @@ menu "Kit firmware"
             is held, because mic -> speaker feedback howls. Enable this if you
             have no encoder wired yet or want to test the speaker freely.
 
-    config KIT_USB_MIDI
-        bool "USB MIDI device (TinyUSB, experimental)"
-        default n
+    config KIT_ENC_STEPS
+        int "Encoder counts per detent"
+        range 1 4
+        default 4
         help
-            Make the board a USB MIDI device plus a CDC serial console using
-            TinyUSB. This takes over the USB port, so the normal USB
-            Serial/JTAG console and flashing path are gone; build with
-            sdkconfig.defaults.usbmidi and flash with tools/flash.sh.
+            Most EC11 encoders give 4 quadrature edges per click; some give 2.
 
     config KIT_SAMPLE_RATE
         int "Sample rate (Hz)"
