@@ -102,9 +102,9 @@ static void draw(const looper_ui_t *u, bool blink, int hold_ms)
     else snprintf(line, sizeof line, "%s", u->page == PG_VOCAL ? "sing" : "hum a note");
     oled_text(0, 19, line);
 
-    // loop position
+    // loop position (steps is 0 until the audio task has set the loop up)
     oled_rect(0, 28, OLED_W, 4, false);
-    {
+    if (u->steps > 0) {
         int w = (u->step + 1) * (OLED_W - 2) / u->steps;
         oled_rect(1, 29, w, 2, true);
         for (int b = 1; b < u->bars; b++) oled_vline(b * OLED_W / u->bars, 28, 31, true);
@@ -114,7 +114,7 @@ static void draw(const looper_ui_t *u, bool blink, int hold_ms)
     if (u->page == PG_VOCAL) draw_wave(y0, h);
     else if (u->page == PG_DRUMS) draw_drums(u, y0, h);
     else draw_seq(u, y0, h);
-    oled_vline(u->step * OLED_W / u->steps, y0 - 2, y0 - 1, true);
+    if (u->steps > 0) oled_vline(u->step * OLED_W / u->steps, y0 - 2, y0 - 1, true);
     oled_flush();
 }
 
