@@ -56,7 +56,10 @@ static void build_items(const looper_ui_t *u)
         ADD("Copy A here", MI_ACTION, MA_COPY_A); ADD("Clear pattern", MI_ACTION, MA_CLEAR_PAT);
         break;
     case SEC_TRACK:
-        ADD(NULL, MI_PARAM, PR_SOUND); ADD(NULL, MI_PARAM, PR_VOL); ADD(NULL, MI_PARAM, PR_PAN);
+        ADD(NULL, MI_PARAM, PR_SOUND);
+        if (u->kind != K_DRUMS && u->kind != K_VOCAL) ADD(NULL, MI_PARAM, PR_OCTAVE);
+        ADD(NULL, MI_PARAM, PR_VOL); ADD(NULL, MI_PARAM, PR_PAN);
+        ADD(NULL, MI_PARAM, PR_FX); ADD(NULL, MI_PARAM, PR_FXAMT);
         ADD(NULL, MI_PARAM, PR_REV); ADD(NULL, MI_PARAM, PR_DLY); ADD(NULL, MI_PARAM, PR_LOWCUT); ADD(NULL, MI_PARAM, PR_TONE);
         ADD("Mute", MI_TOGGLE, MA_MUTE); ADD("Solo", MI_TOGGLE, MA_SOLO);
         ADD(NULL, MI_PARAM, PR_ADDKIND); ADD("Add track", MI_ACTION, MA_ADD_TRACK); ADD("Delete track", MI_ACTION, MA_DEL_TRACK);
@@ -69,7 +72,7 @@ static void build_items(const looper_ui_t *u)
         ADD(NULL, MI_PARAM, PR_BPM); ADD(NULL, MI_PARAM, PR_BARS); ADD(NULL, MI_PARAM, PR_KEY);
         ADD(NULL, MI_PARAM, PR_COUNTIN); ADD(NULL, MI_PARAM, PR_METRO); ADD(NULL, MI_PARAM, PR_QUANT);
         ADD(NULL, MI_PARAM, PR_SWING); ADD(NULL, MI_PARAM, PR_HUMAN); ADD(NULL, MI_PARAM, PR_KIT);
-        ADD(NULL, MI_PARAM, PR_MICGAIN); ADD(NULL, MI_PARAM, PR_GATE);
+        ADD(NULL, MI_PARAM, PR_MICGAIN); ADD(NULL, MI_PARAM, PR_GATE); ADD(NULL, MI_PARAM, PR_STABLE);
         break;
     case SEC_MASTER:
         ADD(NULL, MI_PARAM, PR_PUMP); ADD(NULL, MI_PARAM, PR_DRIVE); ADD(NULL, MI_PARAM, PR_MTONE);
@@ -390,8 +393,9 @@ void app_looper_run(i2c_master_bus_handle_t bus)
 
         int d = looper_take_dirty();
         if (d) { dirty |= d; dirty_t = now; }
-        if (dirty && now - dirty_t > 800000) {
-            if (dirty & DIRTY_STATE) song_save_state();
+        int64_t wait = (dirty & (DIRTY_STATE | DIRTY_VOCAL)) ? 1500000 : 10000000;
+        if (dirty && now - dirty_t > wait && !u.armed && !u.rec && !song_saving() && !u.bounce) {
+            song_save_state();
             if (dirty & DIRTY_VOCAL) song_save_vocal();
             dirty = 0;
         }
@@ -402,7 +406,8 @@ void app_looper_run(i2c_master_bus_handle_t bus)
             draw_header(&u, blink, &in);
             draw_tracks(&u, blink);
             const int y0 = 31, h = 24;
-            if (u.kind == K_DRUMS) draw_drums(&u, y0, h);
+            if (u.armed) { char c[4]; snprintf(c, sizeof c, "%d", u.beats_to_go); oled_text2(52, y0 + 4, c); oled_text(30, y0 + 20, "get ready..."); }
+            else if (u.kind == K_DRUMS) draw_drums(&u, y0, h);
             else if (u.kind == K_VOCAL) draw_vocal(&u, y0, h);
             else draw_seq(&u, y0, h);
             if (u.steps > 0) { int x = 8 + u.step * (OLED_W - 8) / u.steps; oled_vline(x, y0 - 2, y0 - 1, true); }

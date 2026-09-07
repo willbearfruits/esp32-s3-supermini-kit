@@ -30,3 +30,8 @@ CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_QUAD=y
 CONFIG_SPIRAM_SPEED_80M=y
 CONFIG_SPIRAM_IGNORE_NOTFOUND=y
+
+# Flash programming normally disables the cache, which stalls the audio task
+# on core 1 (audosave clicks). The XMC flash supports suspend, so let the
+# cache keep serving while a write is in flight.
+CONFIG_SPI_FLASH_AUTO_SUSPEND=y

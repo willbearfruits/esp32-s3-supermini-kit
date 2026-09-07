@@ -7,7 +7,7 @@
 #include "dsp.h"
 
 enum { DRUM_KICK, DRUM_SNARE, DRUM_HAT, DRUM_N };
-#define KIT_SYNTH_N 3
+#define KIT_SYNTH_N 4
 #define KIT_USER    KIT_SYNTH_N         // index of the sample kit
 #define KIT_N       (KIT_SYNTH_N + 1)
 

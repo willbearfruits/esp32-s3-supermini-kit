@@ -19,7 +19,7 @@
 static const char *TAG = "looper";
 
 #define MS(x)        ((int)((x) * 0.001f * FS))
-#define CLASSIFY_S   MS(16)
+#define CLASSIFY_S   MS(8)
 #define REFRACT_S    MS(100)
 #define HIT_LAG      MS(5)
 #define NOTE_LAG     MS(30)
@@ -33,6 +33,7 @@ typedef struct {
     uint8_t kind, sound;
     bool mute, solo;
     int vol, rev, dly, lowcut, tone, pan;      // 0..100, 0..100, 0..100, 0..8 (x50 Hz), -100..100, -100..100
+    int octave, fx, fx_amt;                    // -2..2, FX_*, 0..100
     bool has[PAT_N];
     int8_t vslot[PAT_N];                        // vocal slot per pattern
     synth_t pb, live;
@@ -46,7 +47,10 @@ static struct {
     bool  armed, rec, replace_next, song_mode;
     float bpm, step_len;
     int   bars, steps, loop_len, pos, last_step;
-    int   swing, human, kit, count_in, quant8, key, mic_gain, gate_db;
+    int   swing, human, kit, count_in, quant8, key, mic_gain, gate_db, stability;
+    uint8_t fresh[LOOP_MAX_STEPS];             // steps written during the running take (bit per drum, bit 7 melodic)
+    int   post_roll;                           // samples after the loop start that still belong to the finished take
+    int   early_type, early_vel;               // a hit played just before the take starts
     bool  metro;
     uint8_t arr[ARR_N]; int arr_rep, arr_pos, arr_loops;
 
@@ -160,6 +164,7 @@ static void track_new(int i, int kind)
     memset(tr, 0, sizeof *tr);
     tr->vol = 80; tr->rev = kind == K_DRUMS ? 10 : 25; tr->dly = (kind == K_LEAD || kind == K_VOCAL) ? 25 : 0;
     tr->pan = 0; tr->tone = 0; tr->lowcut = kind == K_DRUMS || kind == K_BASS ? 0 : 2;
+    tr->octave = 0; tr->fx = 0; tr->fx_amt = 50;
     for (int p = 0; p < PAT_N; p++) tr->vslot[p] = -1;
     memset(S.drum[i], 0, sizeof S.drum[i]);
     memset(S.seq[i], 0, sizeof S.seq[i]);
@@ -205,7 +210,7 @@ static void init(void)
     S.last_drum = -1; S.bg_db = -60; S.last_step = -1; S.bk_track = -1; S.scene_next = -1;
     S.rnd = 777; S.expr_cut = 1;
     S.swing = 0; S.human = 20; S.kit = 0; S.count_in = 1; S.metro = false; S.quant8 = 0; S.key = 0;
-    S.mic_gain = CONFIG_KIT_MIC_GAIN; S.gate_db = CONFIG_KIT_GATE_DB;
+    S.mic_gain = CONFIG_KIT_MIC_GAIN; S.gate_db = CONFIG_KIT_GATE_DB; S.stability = 1; S.early_type = -1;
     drums_analyser_init();
     tune_init();
     mix_init();
@@ -312,12 +317,17 @@ static void rec_begin(void)
     else if (!overdub) { if (tr->kind == K_DRUMS) memset(S.drum[t][p], 0, sizeof S.drum[t][p]); else memset(S.seq[t][p], 0, LOOP_MAX_STEPS); }
     if (!overdub) tr->has[p] = false;
     memset(S.pc_w, 0, sizeof S.pc_w);
-    if (KIND_SYNTH[tr->kind] >= 0) synth_note_off(&tr->pb, -1);
+    memset(S.fresh, 0, sizeof S.fresh);
+    // a hit or note that came in just before the downbeat belongs to step 0
+    if (tr->kind == K_DRUMS && S.early_type >= 0) { S.drum[t][p][0][S.early_type] = S.early_vel; S.fresh[0] |= 1 << S.early_type; }
+    if (KIND_SYNTH[tr->kind] >= 0 && tr->live_note >= 0) { S.seq[t][p][0] = tr->live_note | SEQ_ATTACK; S.fresh[0] |= 0x80; }
+    S.early_type = -1;
 }
 
 static void rec_end(void)
 {
     S.rec = false;
+    S.post_roll = (int)(S.step_len * 0.4f);
     track_t *tr = cur();
     if (KIND_SYNTH[tr->kind] >= 0 && !S.scale.locked && S.key == 0) {
         float total = 0;
@@ -349,7 +359,7 @@ static void select_track(int t)
     cancel(); live_off();
     S.cur = ((t % S.n_tracks) + S.n_tracks) % S.n_tracks;
     if (cur()->kind == K_VOCAL) tune_set_mode(cur()->sound);
-    mark(DIRTY_STATE);
+    mark(DIRTY_SOFT);
 }
 
 static void add_track(int kind);
@@ -430,7 +440,7 @@ static void drum_hit(track_t *tr, int t, float vel)
 static void play_seq(int t, int s)
 {
     track_t *tr = &S.tr[t];
-    int p = pat_of(t, S.scene);
+    int p = (S.rec && t == S.cur) ? rec_pat() : pat_of(t, S.scene);
     uint8_t b = S.seq[t][p][s];
     int note = b & 0x7F;
     if (!note) { synth_note_off(&tr->pb, -1); return; }
@@ -460,10 +470,10 @@ static void on_step(int s)
         bool rec_this = S.rec && t == S.cur;
         int p = pat_of(t, S.scene);
         if (tr->kind == K_DRUMS) {
-            if (rec_this) continue;
+            if (rec_this) p = rec_pat();
             for (int d = 0; d < DRUM_N; d++) {
                 uint8_t v = S.drum[t][p][s][d];
-                if (!v) continue;
+                if (!v || (rec_this && (S.fresh[s] & (1 << d)))) continue;
                 float vel = v / 127.0f * (1.0f - S.human * 0.003f * rnd01());
                 int delay = S.human > 0 ? (int)(rnd01() * S.human * 0.04f) : 0;
                 if (delay == 0) drum_hit(tr, d, vel);
@@ -474,7 +484,8 @@ static void on_step(int s)
                 if (tr->live_note >= 0) {
                     uint8_t *b = &S.seq[t][rec_pat()][s];
                     if (!((*b & SEQ_ATTACK) && (*b & 0x7F) == tr->live_note)) *b = tr->live_note;
-                }
+                    S.fresh[s] |= 0x80;
+                } else if (!(S.fresh[s] & 0x80)) play_seq(t, s);   // overdub: the old notes still play
             } else play_seq(t, s);
         }
     }
@@ -489,7 +500,8 @@ static int kind_note(int kind, int note)
     case K_KEYS: while (n > 64) n -= 12; while (n < 48) n += 12; break;
     default:     while (n > 88) n -= 12; while (n < 45) n += 12; break;
     }
-    return n;
+    n += cur()->octave * 12;
+    return n < 24 ? 24 : (n > 100 ? 100 : n);
 }
 
 static void live_note_on(track_t *tr, int n, int lag)
@@ -500,7 +512,8 @@ static void live_note_on(track_t *tr, int n, int lag)
         synth_note_off(&tr->live, -1);
         for (int i = 0; i < 3; i++) synth_note_on(&tr->live, tri[i], 0.9f);
     } else synth_note_on(&tr->live, n, 0.9f);
-    if (S.rec) S.seq[S.cur][rec_pat()][step_at(S.pos - lag)] = n | SEQ_ATTACK;
+    if (S.rec) { int st = step_at(S.pos - lag); S.seq[S.cur][rec_pat()][st] = n | SEQ_ATTACK; S.fresh[st] |= 0x80; }
+    else if (S.post_roll > 0 && S.pos - lag < S.post_roll) { S.seq[S.cur][rec_pat()][0] = n | SEQ_ATTACK; }
 }
 
 static void melodic_live(const voice_t *v)
@@ -558,10 +571,18 @@ static void drums_live(const float *in, int n, const voice_t *v)
             float vel = clampf(0.35f + (S.cap_db - thr) / 25.0f, 0.35f, 1.0f);
             drum_hit(tr, type, vel);
             S.last_drum = type;
+            uint8_t v7 = (uint8_t)(vel * 127);
             if (S.rec) {
-                uint8_t v7 = (uint8_t)(vel * 127);
-                uint8_t *slot = &S.drum[S.cur][rec_pat()][step_at(S.cap_pos)][type];
+                int st = step_at(S.cap_pos);
+                uint8_t *slot = &S.drum[S.cur][rec_pat()][st][type];
                 if (v7 > *slot) *slot = v7;
+                S.fresh[st] |= 1 << type;
+            } else if (S.armed && S.loop_len - S.cap_pos < S.step_len * 0.5f) {
+                S.early_type = type; S.early_vel = v7;            // just before the downbeat: keep for step 0
+            } else if (S.post_roll > 0 && S.cap_pos < S.post_roll) {
+                uint8_t *slot = &S.drum[S.cur][rec_pat()][0][type];   // just after the take ended: still step 0
+                if (v7 > *slot) *slot = v7;
+                mark(DIRTY_STATE);
             }
         }
     }
@@ -588,6 +609,7 @@ static void IRAM_ATTR process(const float *in, float *out, int n, const voice_t 
 {
     handle_actions();
     if (S.msg_samples > 0 && (S.msg_samples -= n) <= 0) S.msg[0] = 0;
+    if (S.post_roll > 0) S.post_roll -= n;
     if (S.pos == 0 || S.last_step < 0) loop_start();
 
     int s = (int)(S.pos / S.step_len);
@@ -645,6 +667,7 @@ static void IRAM_ATTR process(const float *in, float *out, int n, const voice_t 
         ch[t].lowcut_hz = k->lowcut * 50.0f; ch[t].tone = k->tone * 0.01f;
         ch[t].mute = k->mute || (any_solo && !k->solo);
         ch[t].duck = k->kind != K_DRUMS;
+        ch[t].fx = k->fx; ch[t].fx_amt = k->fx_amt * 0.01f;
         if (t == S.cur && S.expr_space > ch[t].rev) ch[t].rev = S.expr_space;
     }
     mix_process(lay, ch, S.n_tracks, out, n);
@@ -690,7 +713,7 @@ void looper_action(int act) { if (S.act_n < 8) S.act_q[S.act_n++] = act; }
 const char *looper_kind_name(int kind) { return kind >= 0 && kind < K_N ? KIND_NAMES[kind] : "?"; }
 
 static const char *PNAME[PR_N] = {
-    "Volume", "Pan", "Reverb", "Delay", "Low cut", "Tone", "Sound",
+    "Volume", "Pan", "Reverb", "Delay", "Low cut", "Tone", "Sound", "Octave", "Effect", "Fx amount", "Stability",
     "Kit", "Swing", "Humanise", "Tempo", "Bars", "Key", "Count-in", "Metronome", "Quantise", "Mic gain", "Gate", "Add track",
     "Pump", "Drive", "Master tone",
     "Scene", "Arr 1", "Arr 2", "Arr 3", "Arr 4", "Arr 5", "Arr 6", "Arr 7", "Arr 8", "Loops/scene",
@@ -708,6 +731,10 @@ int looper_param_get(int p)
     case PR_LOWCUT: return tr->lowcut;
     case PR_TONE:   return tr->tone;
     case PR_SOUND:  return tr->sound;
+    case PR_OCTAVE: return tr->octave;
+    case PR_FX:     return tr->fx;
+    case PR_FXAMT:  return tr->fx_amt;
+    case PR_STABLE: return S.stability;
     case PR_KIT:    return S.kit;
     case PR_SWING:  return S.swing;
     case PR_HUMAN:  return S.human;
@@ -745,6 +772,10 @@ void looper_param_set(int p, int v)
         if (tr->kind == K_VOCAL) { tr->sound = ((v % TUNE_N) + TUNE_N) % TUNE_N; tune_set_mode(tr->sound); }
         else if (KIND_SYNTH[tr->kind] >= 0) { tr->sound = ((v % SYNTH_PRESETS) + SYNTH_PRESETS) % SYNTH_PRESETS; track_setup(tr, tr->kind, tr->sound); }
         break;
+    case PR_OCTAVE: tr->octave = clampi(v, -2, 2); break;
+    case PR_FX:     tr->fx = ((v % FX_N) + FX_N) % FX_N; break;
+    case PR_FXAMT:  tr->fx_amt = clampi(v, 0, 100); break;
+    case PR_STABLE: S.stability = clampi(v, 0, 2); voice_set_stability(S.stability); break;
     case PR_KIT:    S.kit = ((v % KIT_N) + KIT_N) % KIT_N; for (int t = 0; t < TRACK_N; t++) if (S.tr[t].kind == K_DRUMS) drums_set_kit(&S.tr[t].drums, S.kit); S.kit = cur()->kind == K_DRUMS ? cur()->drums.kit : S.kit; break;
     case PR_SWING:  S.swing = clampi(v, 0, 100); break;
     case PR_HUMAN:  S.human = clampi(v, 0, 100); break;
@@ -772,6 +803,7 @@ void looper_param_step(int p, int dir)
     int step = 5;
     switch (p) {
     case PR_LOWCUT: case PR_SOUND: case PR_KIT: case PR_BPM: case PR_KEY: case PR_COUNTIN: case PR_METRO: case PR_QUANT:
+    case PR_OCTAVE: case PR_FX: case PR_STABLE:
     case PR_MICGAIN: case PR_GATE: case PR_ADDKIND: case PR_SCENE: case PR_ARR_REP: case PR_DRIVE: step = 1; break;
     case PR_PAN: case PR_TONE: case PR_MTONE: step = 10; break;
     default: if (p >= PR_ARR0 && p <= PR_ARR7) step = 1; break;
@@ -794,6 +826,9 @@ void looper_param_text(int p, char *buf, int len)
         else snprintf(buf, len, "%s", kit_name(S.kit));
         break;
     case PR_KIT:    snprintf(buf, len, "%s", kit_name(v)); break;
+    case PR_OCTAVE: snprintf(buf, len, "%+d", v); break;
+    case PR_FX:     snprintf(buf, len, "%s", mix_fx_name(v)); break;
+    case PR_STABLE: snprintf(buf, len, "%s", v == 0 ? "loose" : (v == 1 ? "normal" : "steady")); break;
     case PR_DRIVE:  snprintf(buf, len, "%d.%d", v / 10, v % 10); break;
     case PR_BPM:    snprintf(buf, len, "%d", v); break;
     case PR_BARS:   snprintf(buf, len, "%d", v); break;
@@ -865,8 +900,10 @@ void looper_get_state(song_state_t *st)
         st->tr[t].kind = tr->kind; st->tr[t].sound = tr->sound; st->tr[t].mute = tr->mute; st->tr[t].solo = tr->solo;
         st->tr[t].vol = tr->vol; st->tr[t].rev = tr->rev; st->tr[t].dly = tr->dly; st->tr[t].lowcut = tr->lowcut;
         st->tr[t].pan = tr->pan; st->tr[t].tone = tr->tone;
+        st->tr[t].octave = tr->octave; st->tr[t].fx = tr->fx; st->tr[t].fx_amt = tr->fx_amt;
         for (int p = 0; p < PAT_N; p++) st->tr[t].has[p] = tr->has[p];
     }
+    st->stability = S.stability;
     memcpy(st->drum, S.drum, sizeof st->drum);
     memcpy(st->seq, S.seq, sizeof st->seq);
 }
@@ -883,6 +920,7 @@ void looper_set_state(const song_state_t *st)
     S.mic_gain = clampi(st->mic_gain ? st->mic_gain : CONFIG_KIT_MIC_GAIN, 1, 64); audio_set_mic_gain(S.mic_gain);
     S.gate_db = st->gate_db ? st->gate_db : CONFIG_KIT_GATE_DB; voice_set_gate_db(S.gate_db);
     S.n_tracks = clampi(st->n_tracks, 1, TRACK_N);
+    S.stability = clampi(st->stability, 0, 2); voice_set_stability(S.stability);
     S.scale.root = st->root; S.scale.minor = st->minor; S.scale.locked = st->scale_locked; apply_key();
     S.song_mode = st->song_mode; S.arr_rep = st->arr_rep ? st->arr_rep : 2; memcpy(S.arr, st->arr, sizeof S.arr);
     S.scene = clampi(st->scene, 0, PAT_N - 1); S.scene_next = -1; S.arr_pos = 0; S.arr_loops = 0;
@@ -893,6 +931,7 @@ void looper_set_state(const song_state_t *st)
         tr->mute = st->tr[t].mute; tr->solo = st->tr[t].solo;
         tr->vol = st->tr[t].vol; tr->rev = st->tr[t].rev; tr->dly = st->tr[t].dly; tr->lowcut = st->tr[t].lowcut;
         tr->pan = st->tr[t].pan; tr->tone = st->tr[t].tone;
+        tr->octave = clampi(st->tr[t].octave, -2, 2); tr->fx = st->tr[t].fx < FX_N ? st->tr[t].fx : 0; tr->fx_amt = clampi(st->tr[t].fx_amt, 0, 100);
         for (int p = 0; p < PAT_N; p++) tr->has[p] = tr->kind == K_VOCAL ? false : st->tr[t].has[p];
     }
     memcpy(S.drum, st->drum, sizeof S.drum);

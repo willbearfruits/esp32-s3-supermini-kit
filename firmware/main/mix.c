@@ -22,8 +22,71 @@ static float *dly_l, *dly_r;
 static int dly_w, dly_len;
 static float dly_lp_l, dly_lp_r;
 
-typedef struct { biquad_t hp; float lp; float last_hz; } ch_state_t;
+#define ANTI_DENORMAL 1e-9f
+#define CHO_N 1024
+typedef struct {
+    biquad_t hp; float lp; float last_hz;
+    float lfo;                       // effect LFO phase 0..1
+    float cho[CHO_N]; int cho_i;     // chorus line
+    float ap[4];                     // phaser allpass states
+    float hold; int hold_n;          // crusher sample-and-hold
+    svf_t wob;
+} ch_state_t;
 static ch_state_t cs[MIX_MAX];
+static float beat_hz = 2;            // for tempo-synced LFOs
+
+const char *mix_fx_name(int fx)
+{
+    static const char *n[FX_N] = { "none", "DRIVE", "CRUSH", "CHORUS", "PHASER", "WOBBLE", "TREMOLO" };
+    return fx >= 0 && fx < FX_N ? n[fx] : "?";
+}
+
+static inline float fx_run(ch_state_t *st, int fx, float amt, float x)
+{
+    switch (fx) {
+    case FX_DRIVE: {
+        float g = 1.0f + amt * 12.0f;
+        float y = x * g;
+        if (y > 3) y = 3;
+        if (y < -3) y = -3;
+        float y2 = y * y;
+        return y * (27.0f + y2) / (27.0f + 9.0f * y2) / (0.6f + 0.4f * g * 0.25f);
+    }
+    case FX_CRUSH: {
+        int dec = 1 + (int)(amt * 12);
+        if (++st->hold_n >= dec) { st->hold_n = 0; float q = 4.0f + (1.0f - amt) * 60.0f; st->hold = (int)(x * q) / q; }
+        return st->hold;
+    }
+    case FX_CHORUS: {
+        st->lfo += 0.6f / FS; if (st->lfo >= 1) st->lfo -= 1;
+        float d = (8.0f + 6.0f * fast_sin01(st->lfo)) * FS * 0.001f;
+        float pos = st->cho_i - d;
+        int i0 = (int)pos; float f = pos - i0;
+        float a = st->cho[(i0 + CHO_N) & (CHO_N - 1)], b = st->cho[(i0 + 1 + CHO_N) & (CHO_N - 1)];
+        st->cho[st->cho_i] = x + ANTI_DENORMAL;
+        st->cho_i = (st->cho_i + 1) & (CHO_N - 1);
+        return x + (a + (b - a) * f) * amt;
+    }
+    case FX_PHASER: {
+        st->lfo += 0.35f / FS; if (st->lfo >= 1) st->lfo -= 1;
+        float c = 0.2f + 0.7f * (0.5f + 0.5f * fast_sin01(st->lfo));   // allpass coefficient sweep
+        float y = x + ANTI_DENORMAL;
+        for (int i = 0; i < 4; i++) { float t = y - c * st->ap[i]; y = c * t + st->ap[i]; st->ap[i] = t; }
+        return x + y * amt;
+    }
+    case FX_WOBBLE: {
+        st->lfo += beat_hz * 0.5f / FS; if (st->lfo >= 1) st->lfo -= 1;     // one wobble per half note
+        float fc = 150.0f * powf(2.0f, 4.5f * (0.5f + 0.5f * fast_sin01(st->lfo)) * amt);
+        svf_set(&st->wob, fc, 2.5f);
+        return svf_run(&st->wob, x, NULL, NULL);
+    }
+    case FX_TREMOLO: {
+        st->lfo += beat_hz * 2.0f / FS; if (st->lfo >= 1) st->lfo -= 1;     // eighths
+        return x * (1.0f - amt * (0.5f + 0.5f * fast_sin01(st->lfo)));
+    }
+    default: return x;
+    }
+}
 static float master_lp_l, master_lp_r;
 
 static float duck;
@@ -36,7 +99,6 @@ static float lim_gain = 1, lim_gr;
 #define LIM_LA 32
 static float lim_buf[2][LIM_LA];
 static int lim_i;
-#define ANTI_DENORMAL 1e-9f
 
 static void *psram(size_t bytes)
 {
@@ -75,6 +137,7 @@ void mix_set_tempo(float bpm)
     int len = (int)(FS * 60.0f / bpm * 0.75f);
     if (len >= DLY_MAX) len = DLY_MAX - 1;
     dly_len = len;
+    beat_hz = bpm / 60.0f;
 }
 
 void mix_kick(void) { duck = 1.0f; }
@@ -127,6 +190,7 @@ void IRAM_ATTR mix_process(float *const tracks[], const mix_ch_t ch[], int nch, 
             float x = tracks[c][i];
             if (ch[c].lowcut_hz > 0) x = biquad_run(&st->hp, x);
             if (tone != 0) { onepole(&st->lp, x, tone_c); x = st->lp * (1.0f - tone) + (x - st->lp) * (1.0f + tone); }
+            if (ch[c].fx) x = fx_run(st, ch[c].fx, ch[c].fx_amt, x);
             if (ch[c].duck) x *= dk[i];
             L[i] += x * gl; R[i] += x * gr;
             rev_in[i] += x * ch[c].rev; dly_in[i] += x * ch[c].dly;

@@ -21,3 +21,4 @@ void  voice_feed(const float *x, int n, voice_t *out);
 float voice_noise_db(void);   // tracked background level
 void  voice_set_gate_db(float db);
 float voice_get_gate_db(void);
+void  voice_set_stability(int level);   // 0 loose, 1 normal, 2 steady

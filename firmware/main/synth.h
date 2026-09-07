@@ -6,12 +6,15 @@
 
 #define SYNTH_MAX_VOICES 4
 
+enum { W_SAW, W_SQUARE, W_TRI, W_SINE };
+
 typedef struct {
     float a_ms, d_ms, sus, r_ms;   // amp envelope
     float cutoff, env_hz, vel_hz, q; // lowpass base, envelope sweep, velocity sweep, resonance
     float detune_cents;            // between the two oscillators
     float sub;                     // sub-octave square level
-    bool  square;                  // square instead of saw
+    int   wave;                    // W_*
+    float fm_ratio, fm_amt;        // phase modulation by a sine at ratio x pitch, depth follows the envelope
     float glide_ms;                // portamento (mono use)
     float gain;
 } synth_cfg_t;
@@ -19,7 +22,7 @@ typedef struct {
 typedef struct {
     int      note;
     float    vel;
-    float    ph1, ph2, phs, freq, freq_t, glide_c;
+    float    ph1, ph2, phs, phm, freq, freq_t, glide_c;
     float    env;
     int      stage;                // 0 idle 1 attack 2 decay 3 sustain 4 release
     svf_t    lpf;
@@ -42,6 +45,6 @@ void synth_set_expr(synth_t *s, float bend, float cut_mul, float vib);
 
 // presets: kind (bass, keys, lead) x variant
 enum { SK_BASS, SK_KEYS, SK_LEAD, SK_N };
-#define SYNTH_PRESETS 3
+#define SYNTH_PRESETS 5
 const synth_cfg_t *synth_preset(int kind, int variant);
 const char *synth_preset_name(int kind, int variant);

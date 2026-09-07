@@ -6,10 +6,14 @@
 
 #define MIX_MAX 8
 
+enum { FX_NONE, FX_DRIVE, FX_CRUSH, FX_CHORUS, FX_PHASER, FX_WOBBLE, FX_TREMOLO, FX_N };
+const char *mix_fx_name(int fx);
+
 typedef struct {
     float vol, pan, rev, dly;   // 0..1, -1..1, 0..1, 0..1
     float lowcut_hz;            // 0 = off
     float tone;                 // -1 dark .. +1 bright
+    int   fx; float fx_amt;     // insert effect and its amount 0..1
     bool  mute, duck;           // duck: follows the kick sidechain
 } mix_ch_t;
 

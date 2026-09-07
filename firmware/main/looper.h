@@ -22,7 +22,7 @@ enum { ACT_TAP, ACT_CANCEL, ACT_NEXT_TRACK, ACT_PREV_TRACK, ACT_UNDO, ACT_CLEAR_
        ACT_CLEAR_SONG, ACT_REPLACE, ACT_SCENE_UP, ACT_SCENE_DOWN, ACT_ADD_TRACK, ACT_DEL_TRACK,
        ACT_COPY_A, ACT_SONG_MODE, ACT_NEW_SONG };
 
-enum { PR_VOL, PR_PAN, PR_REV, PR_DLY, PR_LOWCUT, PR_TONE, PR_SOUND,
+enum { PR_VOL, PR_PAN, PR_REV, PR_DLY, PR_LOWCUT, PR_TONE, PR_SOUND, PR_OCTAVE, PR_FX, PR_FXAMT, PR_STABLE,
        PR_KIT, PR_SWING, PR_HUMAN, PR_BPM, PR_BARS, PR_KEY, PR_COUNTIN, PR_METRO, PR_QUANT, PR_MICGAIN, PR_GATE, PR_ADDKIND,
        PR_PUMP, PR_DRIVE, PR_MTONE,
        PR_SCENE, PR_ARR0, PR_ARR1, PR_ARR2, PR_ARR3, PR_ARR4, PR_ARR5, PR_ARR6, PR_ARR7, PR_ARR_REP,
@@ -54,13 +54,14 @@ typedef struct {
     int8_t   mtone, gate_db;
     uint8_t  root, minor, scale_locked, song_mode, arr_rep;
     uint8_t  arr[ARR_N];
-    struct { uint8_t kind, sound, mute, solo, vol, rev, dly, lowcut; int8_t pan, tone; uint8_t has[PAT_N]; } tr[TRACK_N];
+    struct { uint8_t kind, sound, mute, solo, vol, rev, dly, lowcut; int8_t pan, tone, octave; uint8_t fx, fx_amt, has[PAT_N]; } tr[TRACK_N];
+    uint8_t  stability;
     uint8_t  drum[TRACK_N][PAT_N][LOOP_MAX_STEPS][DRUM_N];
     uint8_t  seq[TRACK_N][PAT_N][LOOP_MAX_STEPS];
 } song_state_t;
-#define SONG_MAGIC 0x4B495432   // "KIT2"
+#define SONG_MAGIC 0x4B495433   // "KIT3"
 
-enum { DIRTY_STATE = 1, DIRTY_VOCAL = 2 };
+enum { DIRTY_STATE = 1, DIRTY_VOCAL = 2, DIRTY_SOFT = 4 };   // soft: worth saving eventually, not now
 
 extern const fx_t fx_looper;
 
