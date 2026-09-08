@@ -1,8 +1,10 @@
 #include "fx.h"
 #include "sdkconfig.h"
-#ifdef CONFIG_KIT_APP_LOOPER
+#if defined(CONFIG_KIT_APP_LOOPER)
 #include "looper.h"
 const fx_t *const fx_list[] = { &fx_looper };
+#elif defined(CONFIG_KIT_APP_TEST)
+const fx_t *const fx_list[] = { &fx_sine };
 #else
 const fx_t *const fx_list[] = {
     &fx_vocoder, &fx_autotune, &fx_guitar_lead, &fx_guitar_chords,

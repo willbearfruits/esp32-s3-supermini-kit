@@ -2,6 +2,8 @@ set(srcs main.c oled.c dsp.c voice.c audio.c selftest.c fx_list.c)
 if(CONFIG_KIT_APP_LOOPER)
     list(APPEND srcs app_looper.c looper.c scale.c synth.c kit.c mix.c tune.c
                      input.c imu.c tof.c song.c usbmode.c)
+elseif(CONFIG_KIT_APP_TEST)
+    list(APPEND srcs app_test.c fx_sine.c)
 else()
     list(APPEND srcs app_instrument.c fx_test.c fx_vocoder.c fx_autotune.c fx_guitar.c
                      fx_delay.c fx_reverb.c fx_stutter.c)

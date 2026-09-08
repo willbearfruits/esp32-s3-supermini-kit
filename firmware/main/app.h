@@ -4,3 +4,4 @@
 #include "driver/i2c_master.h"
 void app_instrument_run(void);
 void app_looper_run(i2c_master_bus_handle_t bus);
+void app_test_run(void);

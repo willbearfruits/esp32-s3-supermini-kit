@@ -51,8 +51,10 @@ static i2c_master_bus_handle_t i2c_setup(void)
 void app_main(void)
 {
     vTaskDelay(pdMS_TO_TICKS(300));
-#ifdef CONFIG_KIT_APP_LOOPER
+#if defined(CONFIG_KIT_APP_LOOPER)
     ESP_LOGI(TAG, "kit voice looper, %d Hz", CONFIG_KIT_SAMPLE_RATE);
+#elif defined(CONFIG_KIT_APP_TEST)
+    ESP_LOGI(TAG, "kit hardware test, %d Hz", CONFIG_KIT_SAMPLE_RATE);
 #else
     ESP_LOGI(TAG, "kit voice instrument, %d modes, %d Hz", fx_count, CONFIG_KIT_SAMPLE_RATE);
 #endif
@@ -69,8 +71,10 @@ void app_main(void)
 #endif
     audio_start();
 
-#ifdef CONFIG_KIT_APP_LOOPER
+#if defined(CONFIG_KIT_APP_LOOPER)
     app_looper_run(bus);
+#elif defined(CONFIG_KIT_APP_TEST)
+    app_test_run();
 #else
     app_instrument_run();
 #endif

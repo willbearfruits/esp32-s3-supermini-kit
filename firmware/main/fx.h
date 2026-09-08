@@ -16,7 +16,7 @@ typedef struct {
 } fx_t;
 
 extern const fx_t fx_vocoder, fx_autotune, fx_guitar_lead, fx_guitar_chords,
-                  fx_delay, fx_reverb, fx_stutter, fx_test;
+                  fx_delay, fx_reverb, fx_stutter, fx_test, fx_sine;
 
 extern const fx_t *const fx_list[];
 extern const int fx_count;

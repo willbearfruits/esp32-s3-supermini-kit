@@ -11,6 +11,8 @@ menu "Kit firmware"
             bool "Voice looper (drums, bass, chords, lead, vocal)"
         config KIT_APP_INSTRUMENT
             bool "Voice instrument (vocoder, autotune, guitar, delay, ...)"
+        config KIT_APP_TEST
+            bool "Hardware test (sine sweep on the DACs)"
     endchoice
 
     config KIT_LOOP_MAX_SEC
