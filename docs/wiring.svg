@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="900" viewBox="0 0 1280 900">
+<rect width="1280" height="900" fill="#fbf7ee"/>
+<text x="20" y="34" font-size="24" text-anchor="start" font-weight="bold" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">ESP32-S3 SuperMini audio kit, wiring</text>
+<text x="20" y="56" font-size="13" text-anchor="start" font-weight="normal" fill="#444" font-family="Inter, DejaVu Sans, sans-serif">All logic 3.3 V. One I2S port shared by the mic and both DACs, one I2C bus for OLED, IMU and ToF. Wire colour = signal.</text>
+<rect x="520" y="240" width="240" height="350" rx="12" fill="#1f3b6e" stroke="#0d1f3c" stroke-width="2"/>
+<rect x="622.0" y="234" width="36" height="16" rx="4" fill="#bbb" stroke="#666"/>
+<text x="640.0" y="228" font-size="11" text-anchor="middle" font-weight="normal" fill="#333" font-family="Inter, DejaVu Sans, sans-serif">USB-C</text>
+<text x="640.0" y="370" font-size="18" text-anchor="middle" font-weight="bold" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">ESP32-S3</text>
+<text x="640.0" y="392" font-size="13" text-anchor="middle" font-weight="normal" fill="#cfe" font-family="Inter, DejaVu Sans, sans-serif">SuperMini / Zero</text>
+<text x="640.0" y="560" font-size="11" text-anchor="middle" font-weight="normal" fill="#cfe" font-family="Inter, DejaVu Sans, sans-serif">BOOT = looper button</text>
+<circle cx="520" cy="280" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="530" y="284" font-size="11" text-anchor="start" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">5V</text>
+<circle cx="520" cy="310" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="530" y="314" font-size="11" text-anchor="start" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GND</text>
+<circle cx="520" cy="340" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="530" y="344" font-size="11" text-anchor="start" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">3V3</text>
+<circle cx="520" cy="370" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="530" y="374" font-size="11" text-anchor="start" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP1</text>
+<circle cx="520" cy="400" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="530" y="404" font-size="11" text-anchor="start" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP2</text>
+<circle cx="520" cy="430" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="530" y="434" font-size="11" text-anchor="start" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP3</text>
+<circle cx="520" cy="460" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="530" y="464" font-size="11" text-anchor="start" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP4</text>
+<circle cx="520" cy="490" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="530" y="494" font-size="11" text-anchor="start" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP5</text>
+<circle cx="520" cy="520" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="530" y="524" font-size="11" text-anchor="start" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP6</text>
+<circle cx="760" cy="270" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="750" y="274" font-size="11" text-anchor="end" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">TX</text>
+<circle cx="760" cy="297" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="750" y="301" font-size="11" text-anchor="end" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">RX</text>
+<circle cx="760" cy="324" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="750" y="328" font-size="11" text-anchor="end" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP13</text>
+<circle cx="760" cy="351" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="750" y="355" font-size="11" text-anchor="end" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP12</text>
+<circle cx="760" cy="378" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="750" y="382" font-size="11" text-anchor="end" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP11</text>
+<circle cx="760" cy="405" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="750" y="409" font-size="11" text-anchor="end" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP10</text>
+<circle cx="760" cy="432" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="750" y="436" font-size="11" text-anchor="end" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP9</text>
+<circle cx="760" cy="459" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="750" y="463" font-size="11" text-anchor="end" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP8</text>
+<circle cx="760" cy="486" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="750" y="490" font-size="11" text-anchor="end" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP7</text>
+<circle cx="760" cy="513" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="750" y="517" font-size="11" text-anchor="end" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP16</text>
+<circle cx="760" cy="540" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="750" y="544" font-size="11" text-anchor="end" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP15</text>
+<circle cx="760" cy="567" r="5" fill="#ffd166" stroke="#7a5c00"/>
+<text x="750" y="571" font-size="11" text-anchor="end" font-weight="normal" fill="#fff" font-family="Inter, DejaVu Sans, sans-serif">GP14</text>
+<rect x="1000" y="90" width="220" height="194" rx="10" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="1110.0" y="110" font-size="14" text-anchor="middle" font-weight="bold" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">INMP441 mic</text>
+<circle cx="1000" cy="134" r="4.5" fill="#d62828" stroke="#333"/>
+<text x="1012" y="138" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">VDD  ←  3V3</text>
+<circle cx="1000" cy="158" r="4.5" fill="#222" stroke="#333"/>
+<text x="1012" y="162" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GND  ←  GND</text>
+<circle cx="1000" cy="182" r="4.5" fill="#1d6fd6" stroke="#333"/>
+<text x="1012" y="186" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">SCK  ←  GP7</text>
+<circle cx="1000" cy="206" r="4.5" fill="#2a9d3f" stroke="#333"/>
+<text x="1012" y="210" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">WS  ←  GP8</text>
+<circle cx="1000" cy="230" r="4.5" fill="#8338ec" stroke="#333"/>
+<text x="1012" y="234" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">SD  ←  GP10</text>
+<circle cx="1000" cy="254" r="4.5" fill="#222" stroke="#333"/>
+<text x="1012" y="258" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">L/R  ←  GND</text>
+<text x="1110.0" y="276" font-size="10" text-anchor="middle" font-weight="normal" fill="#555" font-family="Inter, DejaVu Sans, sans-serif">port hole on the label side faces out</text>
+<rect x="1000" y="310" width="220" height="194" rx="10" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="1110.0" y="330" font-size="14" text-anchor="middle" font-weight="bold" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">PCM5102A line out</text>
+<circle cx="1000" cy="354" r="4.5" fill="#d62828" stroke="#333"/>
+<text x="1012" y="358" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">VIN  ←  3V3</text>
+<circle cx="1000" cy="378" r="4.5" fill="#222" stroke="#333"/>
+<text x="1012" y="382" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GND  ←  GND</text>
+<circle cx="1000" cy="402" r="4.5" fill="#1d6fd6" stroke="#333"/>
+<text x="1012" y="406" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">BCK  ←  GP7</text>
+<circle cx="1000" cy="426" r="4.5" fill="#2a9d3f" stroke="#333"/>
+<text x="1012" y="430" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">LCK  ←  GP8</text>
+<circle cx="1000" cy="450" r="4.5" fill="#f77f00" stroke="#333"/>
+<text x="1012" y="454" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">DIN  ←  GP9</text>
+<circle cx="1000" cy="474" r="4.5" fill="#222" stroke="#333"/>
+<text x="1012" y="478" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">SCK  ←  GND</text>
+<text x="1110.0" y="496" font-size="10" text-anchor="middle" font-weight="normal" fill="#555" font-family="Inter, DejaVu Sans, sans-serif">bridges: FLT L, DEMP L, XSMT H, FMT L</text>
+<rect x="1000" y="530" width="220" height="194" rx="10" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="1110.0" y="550" font-size="14" text-anchor="middle" font-weight="bold" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">MAX98357A speaker amp</text>
+<circle cx="1000" cy="574" r="4.5" fill="#d62828" stroke="#333"/>
+<text x="1012" y="578" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">VIN  ←  3V3</text>
+<circle cx="1000" cy="598" r="4.5" fill="#222" stroke="#333"/>
+<text x="1012" y="602" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GND  ←  GND</text>
+<circle cx="1000" cy="622" r="4.5" fill="#1d6fd6" stroke="#333"/>
+<text x="1012" y="626" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">BCLK  ←  GP7</text>
+<circle cx="1000" cy="646" r="4.5" fill="#2a9d3f" stroke="#333"/>
+<text x="1012" y="650" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">LRC  ←  GP8</text>
+<circle cx="1000" cy="670" r="4.5" fill="#f77f00" stroke="#333"/>
+<text x="1012" y="674" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">DIN  ←  GP9</text>
+<circle cx="1000" cy="694" r="4.5" fill="#b5651d" stroke="#333"/>
+<text x="1012" y="698" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">SD  ←  GP11</text>
+<text x="1110.0" y="716" font-size="10" text-anchor="middle" font-weight="normal" fill="#555" font-family="Inter, DejaVu Sans, sans-serif">GAIN floating, + / - to a 4 ohm speaker</text>
+<rect x="60" y="110" width="200" height="170" rx="10" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="160.0" y="130" font-size="14" text-anchor="middle" font-weight="bold" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">Joystick</text>
+<circle cx="260" cy="154" r="4.5" fill="#d62828" stroke="#333"/>
+<text x="248" y="158" font-size="12" text-anchor="end" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">3V3  →  +V</text>
+<circle cx="260" cy="178" r="4.5" fill="#222" stroke="#333"/>
+<text x="248" y="182" font-size="12" text-anchor="end" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GND  →  GND</text>
+<circle cx="260" cy="202" r="4.5" fill="#777" stroke="#333"/>
+<text x="248" y="206" font-size="12" text-anchor="end" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GP1  →  VRx</text>
+<circle cx="260" cy="226" r="4.5" fill="#777" stroke="#333"/>
+<text x="248" y="230" font-size="12" text-anchor="end" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GP2  →  VRy</text>
+<circle cx="260" cy="250" r="4.5" fill="#777" stroke="#333"/>
+<text x="248" y="254" font-size="12" text-anchor="end" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GP3  →  SW</text>
+<text x="160.0" y="272" font-size="10" text-anchor="middle" font-weight="normal" fill="#555" font-family="Inter, DejaVu Sans, sans-serif">ADC1 only, ADC2 dies with WiFi</text>
+<rect x="60" y="330" width="200" height="146" rx="10" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="160.0" y="350" font-size="14" text-anchor="middle" font-weight="bold" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">Encoder EC11</text>
+<circle cx="260" cy="374" r="4.5" fill="#777" stroke="#333"/>
+<text x="248" y="378" font-size="12" text-anchor="end" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GP4  →  A / CLK</text>
+<circle cx="260" cy="398" r="4.5" fill="#777" stroke="#333"/>
+<text x="248" y="402" font-size="12" text-anchor="end" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GP5  →  B / DT</text>
+<circle cx="260" cy="422" r="4.5" fill="#777" stroke="#333"/>
+<text x="248" y="426" font-size="12" text-anchor="end" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GP6  →  SW</text>
+<circle cx="260" cy="446" r="4.5" fill="#222" stroke="#333"/>
+<text x="248" y="450" font-size="12" text-anchor="end" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GND  →  GND</text>
+<text x="160.0" y="468" font-size="10" text-anchor="middle" font-weight="normal" fill="#555" font-family="Inter, DejaVu Sans, sans-serif">internal pull-ups</text>
+<rect x="60" y="540" width="200" height="146" rx="10" fill="#fff" stroke="#333" stroke-width="1.5"/>
+<text x="160.0" y="560" font-size="14" text-anchor="middle" font-weight="bold" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">OLED + IMU + ToF (I2C)</text>
+<circle cx="260" cy="584" r="4.5" fill="#d62828" stroke="#333"/>
+<text x="248" y="588" font-size="12" text-anchor="end" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">3V3  →  VCC</text>
+<circle cx="260" cy="608" r="4.5" fill="#222" stroke="#333"/>
+<text x="248" y="612" font-size="12" text-anchor="end" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GND  →  GND</text>
+<circle cx="260" cy="632" r="4.5" fill="#c9a227" stroke="#333"/>
+<text x="248" y="636" font-size="12" text-anchor="end" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GP12  →  SDA</text>
+<circle cx="260" cy="656" r="4.5" fill="#00a6b8" stroke="#333"/>
+<text x="248" y="660" font-size="12" text-anchor="end" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GP13  →  SCL</text>
+<text x="160.0" y="678" font-size="10" text-anchor="middle" font-weight="normal" fill="#555" font-family="Inter, DejaVu Sans, sans-serif">0x3C, 0x68, 0x29</text>
+<polyline points="520,340 480,340 480,620 800,620 800,134 1000,134" fill="none" stroke="#d62828" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,310 467,310 467,632 813,632 813,158 1000,158" fill="none" stroke="#222" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="760,486 826,486 826,182 1000,182" fill="none" stroke="#1d6fd6" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="760,459 839,459 839,206 1000,206" fill="none" stroke="#2a9d3f" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="760,405 865,405 865,230 1000,230" fill="none" stroke="#8338ec" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,310 467,310 467,632 813,632 813,254 1000,254" fill="none" stroke="#222" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,340 480,340 480,620 800,620 800,354 1000,354" fill="none" stroke="#d62828" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,310 467,310 467,632 813,632 813,378 1000,378" fill="none" stroke="#222" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="760,486 826,486 826,402 1000,402" fill="none" stroke="#1d6fd6" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="760,459 839,459 839,426 1000,426" fill="none" stroke="#2a9d3f" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="760,432 852,432 852,450 1000,450" fill="none" stroke="#f77f00" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,310 467,310 467,632 813,632 813,474 1000,474" fill="none" stroke="#222" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,340 480,340 480,620 800,620 800,574 1000,574" fill="none" stroke="#d62828" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,310 467,310 467,632 813,632 813,598 1000,598" fill="none" stroke="#222" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="760,486 826,486 826,622 1000,622" fill="none" stroke="#1d6fd6" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="760,459 839,459 839,646 1000,646" fill="none" stroke="#2a9d3f" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="760,432 852,432 852,670 1000,670" fill="none" stroke="#f77f00" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="760,378 878,378 878,694 1000,694" fill="none" stroke="#b5651d" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,340 480,340 480,154 260,154" fill="none" stroke="#d62828" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,310 467,310 467,178 260,178" fill="none" stroke="#222" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,370 355,370 355,202 260,202" fill="none" stroke="#777" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,400 347,400 347,226 260,226" fill="none" stroke="#777" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,430 339,430 339,250 260,250" fill="none" stroke="#777" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,460 331,460 331,374 260,374" fill="none" stroke="#777" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,490 323,490 323,398 260,398" fill="none" stroke="#777" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,520 315,520 315,422 260,422" fill="none" stroke="#777" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,310 467,310 467,446 260,446" fill="none" stroke="#222" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,340 480,340 480,584 260,584" fill="none" stroke="#d62828" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,310 467,310 467,608 260,608" fill="none" stroke="#222" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="760,351 389,351 389,632 260,632" fill="none" stroke="#c9a227" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="760,324 376,324 376,656 260,656" fill="none" stroke="#00a6b8" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<text x="20" y="805" font-size="13" text-anchor="start" font-weight="bold" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">Signals</text>
+<line x1="20" y1="823" x2="50" y2="823" stroke="#d62828" stroke-width="4"/>
+<text x="58" y="827" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">3V3: power</text>
+<line x1="260" y1="823" x2="290" y2="823" stroke="#222" stroke-width="4"/>
+<text x="298" y="827" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GND: ground</text>
+<line x1="500" y1="823" x2="530" y2="823" stroke="#1d6fd6" stroke-width="4"/>
+<text x="538" y="827" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">BCLK: I2S bit clock GP7</text>
+<line x1="740" y1="823" x2="770" y2="823" stroke="#2a9d3f" stroke-width="4"/>
+<text x="778" y="827" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">WS: I2S word select GP8</text>
+<line x1="980" y1="823" x2="1010" y2="823" stroke="#f77f00" stroke-width="4"/>
+<text x="1018" y="827" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">DOUT: I2S data to DACs GP9</text>
+<line x1="20" y1="845" x2="50" y2="845" stroke="#8338ec" stroke-width="4"/>
+<text x="58" y="849" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">DIN: I2S data from mic GP10</text>
+<line x1="260" y1="845" x2="290" y2="845" stroke="#b5651d" stroke-width="4"/>
+<text x="298" y="849" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">AMP: amp shutdown GP11</text>
+<line x1="500" y1="845" x2="530" y2="845" stroke="#c9a227" stroke-width="4"/>
+<text x="538" y="849" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">SDA: I2C data GP12</text>
+<line x1="740" y1="845" x2="770" y2="845" stroke="#00a6b8" stroke-width="4"/>
+<text x="778" y="849" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">SCL: I2C clock GP13</text>
+<line x1="980" y1="845" x2="1010" y2="845" stroke="#777" stroke-width="4"/>
+<text x="1018" y="849" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">CTL: joystick / encoder</text>
+<text x="1260" y="890" font-size="10" text-anchor="end" font-weight="normal" fill="#666" font-family="Inter, DejaVu Sans, sans-serif">docs/pinmap.md is the source of truth; firmware/main/pins.h must match</text>
+</svg>

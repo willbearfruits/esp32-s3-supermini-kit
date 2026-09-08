@@ -12,8 +12,8 @@ The canonical copy of this table lives in `firmware/main/pins.h`. If you changeÂ
 | 4 | ENC\_A | Encoder CLK / A |  |
 | 5 | ENC\_B | Encoder DT / B |  |
 | 6 | ENC\_SW | Encoder SW | active low, internal pull-up |
-|  |  |  |  |
-|  |  |  | conmi |
+| 7 | I2S\_BCLK | INMP441 **SCK**, PCM5102A **BCK**, MAX98357A **BCLK** | shared bit clock |
+| 8 | I2S\_WS | INMP441 **WS**, PCM5102A **LCK**, MAX98357A **LRC** | shared word select |
 | 9 | I2S\_DOUT | PCM5102A **DIN**, MAX98357A **DIN** | ESP32 -\> DACs |
 | 10 | I2S\_DIN | INMP441 **SD** | mic -\> ESP32 |
 | 11 | AMP\_SD | MAX98357A **SD** | low = amp off |
