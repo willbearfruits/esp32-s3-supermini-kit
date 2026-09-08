@@ -16,6 +16,7 @@
 #include "driver/gpio.h"
 #include "driver/i2s_std.h"
 #include "esp_log.h"
+#include "esp_rom_sys.h"
 #include "esp_cpu.h"
 #include "esp_attr.h"
 #include "sdkconfig.h"
@@ -42,6 +43,37 @@ static volatile int32_t raw_l, raw_r;            // last frame's raw I2S words, 
 static volatile int raw_nz_l, raw_nz_r;          // non-zero words in the last block
 static biquad_t hp_in;
 
+static i2s_std_gpio_config_t gpio_cfg_saved;
+
+// Drive an I2S pin as a plain GPIO for a moment and read it back, to find
+// a pin held by the wiring (a short to GND or 3V3 stops the clock dead).
+// Returns 0 = pin free, 1 = held LOW, 2 = held HIGH.
+int audio_pin_held(int pin)
+{
+    i2s_channel_disable(rx);
+    i2s_channel_disable(tx);
+    gpio_reset_pin(pin);
+    // weak first: a pull-up alone should lift a free line
+    gpio_set_direction(pin, GPIO_MODE_INPUT);
+    gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY); esp_rom_delay_us(200);
+    int weak_high = gpio_get_level(pin);
+    // then push-pull: only a hard short beats the driver
+    gpio_set_direction(pin, GPIO_MODE_INPUT_OUTPUT);
+    gpio_set_level(pin, 1); esp_rom_delay_us(50);
+    int high_reads = gpio_get_level(pin);
+    gpio_set_level(pin, 0); esp_rom_delay_us(50);
+    int low_reads = gpio_get_level(pin);
+    gpio_reset_pin(pin);
+    ESP_LOGI(TAG, "pin %d: pull-up alone reads %d, driven high reads %d, driven low reads %d", pin, weak_high, high_reads, low_reads);
+    i2s_channel_reconfig_std_gpio(tx, &gpio_cfg_saved);
+    i2s_channel_reconfig_std_gpio(rx, &gpio_cfg_saved);
+    i2s_channel_enable(tx);
+    i2s_channel_enable(rx);
+    if (high_reads == 0) return 1;
+    if (low_reads == 1) return 2;
+    return 0;
+}
+
 static void i2s_setup(void)
 {
     i2s_chan_config_t chan_cfg = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
@@ -62,6 +94,7 @@ static void i2s_setup(void)
             .din  = PIN_I2S_DIN,
         },
     };
+    gpio_cfg_saved = std_cfg.gpio_cfg;
     ESP_ERROR_CHECK(i2s_channel_init_std_mode(tx, &std_cfg));
     ESP_ERROR_CHECK(i2s_channel_init_std_mode(rx, &std_cfg));
     ESP_ERROR_CHECK(i2s_channel_enable(tx));

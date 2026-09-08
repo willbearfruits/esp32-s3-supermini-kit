@@ -187,6 +187,9 @@ void app_test_run(i2c_master_bus_handle_t bus)
             ESP_LOGW(TAG, "mic stuck at 0x%08lX for 0.7 s; BCLK %s, WS %s; restarting I2S (restart #%d)", (unsigned long)rl,
                      edges(PIN_I2S_BCLK) > 10 ? "running" : "STOPPED", edges(PIN_I2S_WS) > 2 ? "running" : "STOPPED", ++restarts);
             ESP_LOGW(TAG, "%s", probe_sd());
+            static const char *held[3] = { "free", "SHORTED LOW", "SHORTED HIGH" };
+            ESP_LOGW(TAG, "pin check: BCLK GPIO%d %s, WS GPIO%d %s, DOUT GPIO%d %s", PIN_I2S_BCLK, held[audio_pin_held(PIN_I2S_BCLK)],
+                     PIN_I2S_WS, held[audio_pin_held(PIN_I2S_WS)], PIN_I2S_DOUT, held[audio_pin_held(PIN_I2S_DOUT)]);
             audio_restart_i2s();
         }
 
