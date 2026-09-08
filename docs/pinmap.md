@@ -60,7 +60,7 @@ Trade-off: both DACs always play the same audio. If you ever want different aud
 
 | PCM5102A | Connect to |
 | - | - |
-| VIN | 3V3 |
+| VIN | 5V (the board has its own 3.3 V regulator; on 3V3 it sags to ~3.0 V and the analog side suffers) |
 | GND | GND |
 | LCK | GPIO 8 |
 | DIN | GPIO 9 |

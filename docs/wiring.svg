@@ -68,7 +68,7 @@
 <rect x="1000" y="310" width="220" height="194" rx="10" fill="#fff" stroke="#333" stroke-width="1.5"/>
 <text x="1110.0" y="330" font-size="14" text-anchor="middle" font-weight="bold" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">PCM5102A line out</text>
 <circle cx="1000" cy="354" r="4.5" fill="#d62828" stroke="#333"/>
-<text x="1012" y="358" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">VIN  ←  3V3</text>
+<text x="1012" y="358" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">VIN  ←  5V</text>
 <circle cx="1000" cy="378" r="4.5" fill="#222" stroke="#333"/>
 <text x="1012" y="382" font-size="12" text-anchor="start" font-weight="normal" fill="#111" font-family="Inter, DejaVu Sans, sans-serif">GND  ←  GND</text>
 <circle cx="1000" cy="402" r="4.5" fill="#1d6fd6" stroke="#333"/>
@@ -136,7 +136,7 @@
 <polyline points="760,459 839,459 839,206 1000,206" fill="none" stroke="#2a9d3f" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
 <polyline points="760,405 865,405 865,230 1000,230" fill="none" stroke="#8338ec" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
 <polyline points="520,310 467,310 467,632 813,632 813,254 1000,254" fill="none" stroke="#222" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
-<polyline points="520,340 480,340 480,620 800,620 800,354 1000,354" fill="none" stroke="#d62828" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
+<polyline points="520,280 480,280 480,620 800,620 800,354 1000,354" fill="none" stroke="#d62828" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
 <polyline points="520,310 467,310 467,632 813,632 813,378 1000,378" fill="none" stroke="#222" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
 <polyline points="760,486 826,486 826,402 1000,402" fill="none" stroke="#1d6fd6" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
 <polyline points="760,459 839,459 839,426 1000,426" fill="none" stroke="#2a9d3f" stroke-width="2.2" stroke-linejoin="round" opacity="0.9"/>
