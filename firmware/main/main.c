@@ -74,7 +74,7 @@ void app_main(void)
 #if defined(CONFIG_KIT_APP_LOOPER)
     app_looper_run(bus);
 #elif defined(CONFIG_KIT_APP_TEST)
-    app_test_run();
+    app_test_run(bus);
 #else
     app_instrument_run();
 #endif
