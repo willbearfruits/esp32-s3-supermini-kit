@@ -38,6 +38,8 @@ static int8_t wave[AUDIO_WAVE_N];
 static volatile float out_peak;
 static volatile float cpu_load;      // fraction of the block budget used, smoothed
 static volatile float mic_gain = 8;
+static volatile int32_t raw_l, raw_r;            // last frame's raw I2S words, for the mic test
+static volatile int raw_nz_l, raw_nz_r;          // non-zero words in the last block
 static biquad_t hp_in;
 
 static void i2s_setup(void)
@@ -85,6 +87,8 @@ static void IRAM_ATTR audio_task(void *arg)
         uint32_t c0 = esp_cpu_get_cycle_count();
 
         // INMP441: left slot, top 24 bits are data, low 8 are junk
+        { int nl = 0, nr = 0; for (int f = 0; f < frames; f++) { nl += raw[2 * f] != 0; nr += raw[2 * f + 1] != 0; }
+          raw_nz_l = nl; raw_nz_r = nr; raw_l = raw[2 * (frames - 1)]; raw_r = raw[2 * (frames - 1) + 1]; }
         for (int f = 0; f < frames; f++) {
             float x = (float)(raw[2 * f] >> 8) * (mic_gain / 8388608.0f);
             in[f] = biquad_run(&hp_in, x);
@@ -151,6 +155,7 @@ float audio_out_peak(void) { float p = out_peak; out_peak = 0; return p; }
 float audio_cpu_load(void) { return cpu_load; }
 void  audio_set_mic_gain(float g) { mic_gain = g; }
 float audio_get_mic_gain(void) { return mic_gain; }
+void  audio_get_raw(int32_t *l, int32_t *r, int *nz_l, int *nz_r) { *l = raw_l; *r = raw_r; *nz_l = raw_nz_l; *nz_r = raw_nz_r; }
 
 void audio_midi_note_on(int note, int vel)
 {
