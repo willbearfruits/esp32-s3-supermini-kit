@@ -69,6 +69,13 @@ menu "Kit firmware"
         help
             Most EC11 encoders give 4 quadrature edges per click; some give 2.
 
+    config KIT_OLED_FLIP
+        bool "Rotate the OLED 180 degrees"
+        default y
+        help
+            Set to match how the panel is mounted; the header end of the
+            module is the top when this is off.
+
     config KIT_SAMPLE_RATE
         int "Sample rate (Hz)"
         default 32000

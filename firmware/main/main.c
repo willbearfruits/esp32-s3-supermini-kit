@@ -7,6 +7,7 @@
 #include "driver/gpio.h"
 #include "driver/i2c_master.h"
 #include "esp_log.h"
+#include "esp_rom_sys.h"
 #include "sdkconfig.h"
 
 #include "pins.h"
@@ -30,8 +31,31 @@ static void gpio_setup(void)
     ESP_ERROR_CHECK(gpio_config(&in));
 }
 
+// A reset in the middle of an I2C transfer can leave a slave holding SDA
+// low, and then nothing answers. Clock SCL until it lets go, then a STOP.
+static void i2c_recover(void)
+{
+    gpio_config_t io = { .pin_bit_mask = (1ULL << PIN_I2C_SDA) | (1ULL << PIN_I2C_SCL),
+                         .mode = GPIO_MODE_INPUT_OUTPUT_OD, .pull_up_en = GPIO_PULLUP_ENABLE };
+    gpio_config(&io);
+    gpio_set_level(PIN_I2C_SDA, 1); gpio_set_level(PIN_I2C_SCL, 1);
+    esp_rom_delay_us(20);
+    if (gpio_get_level(PIN_I2C_SDA) == 0) {
+        ESP_LOGW(TAG, "I2C SDA held low, recovering");
+        for (int i = 0; i < 16 && gpio_get_level(PIN_I2C_SDA) == 0; i++) {
+            gpio_set_level(PIN_I2C_SCL, 0); esp_rom_delay_us(10);
+            gpio_set_level(PIN_I2C_SCL, 1); esp_rom_delay_us(10);
+        }
+        gpio_set_level(PIN_I2C_SDA, 0); esp_rom_delay_us(10);      // STOP
+        gpio_set_level(PIN_I2C_SCL, 1); esp_rom_delay_us(10);
+        gpio_set_level(PIN_I2C_SDA, 1); esp_rom_delay_us(10);
+    }
+    gpio_reset_pin(PIN_I2C_SDA); gpio_reset_pin(PIN_I2C_SCL);
+}
+
 static i2c_master_bus_handle_t i2c_setup(void)
 {
+    i2c_recover();
     i2c_master_bus_handle_t bus = NULL;
     i2c_master_bus_config_t cfg = {
         .clk_source = I2C_CLK_SRC_DEFAULT,

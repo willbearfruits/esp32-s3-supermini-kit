@@ -1,4 +1,5 @@
 #include "oled.h"
+#include "sdkconfig.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -49,6 +50,9 @@ esp_err_t oled_init(i2c_master_bus_handle_t bus, uint8_t addr)
     }
     err = esp_lcd_panel_reset(panel);
     if (err == ESP_OK) err = esp_lcd_panel_init(panel);
+#ifdef CONFIG_KIT_OLED_FLIP
+    if (err == ESP_OK) err = esp_lcd_panel_mirror(panel, true, true);   // 180 degrees
+#endif
     if (err == ESP_OK) err = esp_lcd_panel_disp_on_off(panel, true);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "panel init: %s", esp_err_to_name(err));

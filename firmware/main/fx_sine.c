@@ -1,5 +1,6 @@
 // Hardware test tone: 440 Hz sine, level sweeping -50 dB .. 0 dB .. -50 dB
-// over 8 s, forever. For checking a DAC or amp on its own.
+// over 8 s, forever, with the mic passed straight through on top.
+// For checking a DAC or amp on its own, then the mic with headphones.
 #include "fx.h"
 #include "dsp.h"
 #include <stdio.h>
@@ -18,7 +19,7 @@ static void process(const float *in, float *out, int n, const voice_t *v)
         float tri = x < 0.5f ? 2.0f * x : 2.0f - 2.0f * x; // 0..1..0
         db = -50.0f + 50.0f * tri;
         float amp = powf(10.0f, db / 20.0f);
-        out[i] = fast_sin01(ph) * amp;
+        out[i] = fast_sin01(ph) * amp * 0.5f + in[i];           // tone plus the mic, straight through
         ph += inc; if (ph >= 1) ph -= 1;
         t += dt; if (t >= SWEEP_S) t -= SWEEP_S;
     }

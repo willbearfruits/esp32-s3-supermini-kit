@@ -5,6 +5,7 @@
 #include "audio.h"
 #include "oled.h"
 #include "dsp.h"
+#include "voice.h"
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
@@ -38,6 +39,23 @@ static void page_text(float db)
     oled_text(4, 38, "0123456789 !\"#$%&'()*+");
     snprintf(line, sizeof line, "sine 440 Hz %5.1f dB", db);
     oled_text(4, 50, line);
+}
+
+static void page_mic(const voice_t *v)
+{
+    char line[32], nm[5];
+    oled_text2(4, 2, "MIC");
+    snprintf(line, sizeof line, "%5.1f dBFS %s", v->db, v->gate ? "voice" : "quiet");
+    oled_text(52, 6, line);
+    int bar = (int)((v->db + 60) / 60 * 118);
+    oled_rect(4, 20, 120, 8, false);
+    oled_rect(5, 21, bar > 0 ? (bar > 118 ? 118 : bar) : 0, 6, true);
+    if (v->voiced) snprintf(line, sizeof line, "note %s  %.0f Hz", note_name(v->note, nm), v->freq);
+    else snprintf(line, sizeof line, "hum for a note");
+    oled_text(4, 34, line);
+    int8_t wave[AUDIO_WAVE_N];
+    audio_get_wave(wave);
+    for (int x = 1; x < OLED_W; x++) oled_pixel(x, 52 - wave[x] * 10 / 128, true);
 }
 
 static void page_anim(int frame, float db)
@@ -85,15 +103,22 @@ void app_test_run(i2c_master_bus_handle_t bus)
             int bar = (int)((db + 50) / 50 * 30);
             char line[40];
             snprintf(line, sizeof line, "|%-30.*s|", bar, "##############################");
-            ESP_LOGI(TAG, "sine 440 Hz  %5.1f dB %s  peak %5.2f  cpu %2.0f%%  oled %s", db, line, audio_out_peak(),
+            voice_t v; char nm[5];
+            audio_get_voice(&v);
+            ESP_LOGI(TAG, "sine %5.1f dB %s  mic %6.1f dBFS %s %s  cpu %2.0f%%  oled %s", db, line,
+                     v.db, v.gate ? "VOICE" : "quiet", v.voiced ? note_name(v.note, nm) : "---",
                      audio_cpu_load() * 100, oled_present() ? "on" : "none");
         }
         if (oled_present()) {
             oled_clear();
-            int phase = (frame / 75) % 3;                     // 3 s per page at 25 fps
+            voice_t v;
+            audio_get_voice(&v);
+            int phase = (frame / 75) % 4;                     // 3 s per page at 25 fps
+            if (v.gate) phase = 3;                             // a voice pulls the mic page up
             if (phase == 0) page_grid(frame);
             else if (phase == 1) page_text(db);
-            else page_anim(frame, db);
+            else if (phase == 2) page_anim(frame, db);
+            else page_mic(&v);
             oled_flush();
         }
         frame++;
