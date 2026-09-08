@@ -14,6 +14,7 @@ float audio_out_peak(void);            // output peak since last call, linear
 float audio_cpu_load(void);            // DSP time / available time, 0..1
 void  audio_set_mic_gain(float g);     // linear, runtime
 float audio_get_mic_gain(void);
+void  audio_restart_i2s(void);
 void  audio_get_raw(int32_t *l, int32_t *r, int *nz_l, int *nz_r);   // last raw I2S words and non-zero counts per block
 void audio_midi_note_on(int note, int vel);
 void audio_midi_note_off(int note);

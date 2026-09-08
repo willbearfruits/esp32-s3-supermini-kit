@@ -1,7 +1,8 @@
 // Hardware test. Mic straight to the DACs, level on the screen and in the
-// log, raw I2S words dumped so a dead or miswired mic is diagnosable. Tap
-// BOOT to add the 440 Hz sweep tone (fx_sine.c). The screen also cycles a
-// grid / text / animation page while nothing is heard, to exercise the OLED.
+// log, raw I2S words dumped so a dead, miswired or stuck mic is
+// diagnosable. Encoder page when the knob moves. Tap BOOT or the encoder
+// to add the 440 Hz sweep tone (fx_sine.c). While nothing happens the
+// screen cycles a grid / text / animation page to exercise the OLED.
 #include "app.h"
 #include "audio.h"
 #include "oled.h"
@@ -18,12 +19,12 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "sdkconfig.h"
-#include "pins.h"
 
 static const char *TAG = "test";
 float fx_sine_db(void);
 void  fx_sine_set_tone(bool on);
 static bool tone;
+static int enc_count, enc_last_dir, enc_presses;
 
 static const char *diagnose(int32_t l, int32_t r, int nzl, int nzr, int n)
 {
@@ -32,6 +33,40 @@ static const char *diagnose(int32_t l, int32_t r, int nzl, int nzr, int n)
     if ((uint32_t)l == 0xFFFFFFFF || (l >> 8) == 0x7FFFFF || (l >> 8) == -0x800000) return "line stuck/floating: check SD wire and GND";
     if (nzl > 0 && nzl < n / 2) return "intermittent data: loose SD or clock wire";
     return "mic data OK";
+}
+
+// Are the I2S clocks really toggling on the pins? Read them back a few
+// hundred times and count edges.
+static int edges(int pin)
+{
+    gpio_input_enable(pin);
+    int last = gpio_get_level(pin), n = 0;
+    int64_t t0 = esp_timer_get_time();
+    while (esp_timer_get_time() - t0 < 2000) { int l = gpio_get_level(pin); if (l != last) n++; last = l; }   // 2 ms: WS gives ~128 edges
+    return n;
+}
+
+// Is anything driving SD? Pull it up, then down, and see if the data
+// follows the pull. A working mic overrides the weak pull in both cases.
+static const char *probe_sd(void)
+{
+    int32_t l, r; int nzl, nzr;
+    gpio_set_pull_mode(PIN_I2S_DIN, GPIO_PULLUP_ONLY);
+    vTaskDelay(pdMS_TO_TICKS(30));
+    audio_get_raw(&l, &r, &nzl, &nzr);
+    int32_t lu = l; int level_up = gpio_get_level(PIN_I2S_DIN);
+    bool up_high = (uint32_t)l > 0xF0000000u;
+    gpio_set_pull_mode(PIN_I2S_DIN, GPIO_PULLDOWN_ONLY);
+    vTaskDelay(pdMS_TO_TICKS(30));
+    audio_get_raw(&l, &r, &nzl, &nzr);
+    int level_down = gpio_get_level(PIN_I2S_DIN);
+    bool down_low = l == 0 && r == 0;
+    gpio_set_pull_mode(PIN_I2S_DIN, GPIO_FLOATING);
+    ESP_LOGI(TAG, "SD probe: with pull-up word 0x%08lX pin=%d, with pull-down word 0x%08lX pin=%d",
+             (unsigned long)lu, level_up, (unsigned long)l, level_down);
+    if (up_high && down_low) return "SD follows the pull: NOTHING drives it (mic has no VDD, no clocks, or SD is not on GPIO10)";
+    if (!up_high && !down_low) return "SD is driven by something";
+    return up_high ? "SD stuck low-ish: is it shorted to GND?" : "SD stuck high-ish: is it shorted to 3V3?";
 }
 
 static void page_grid(int frame)
@@ -65,7 +100,6 @@ static void page_anim(int frame)
     oled_circle(100, 24, 17, false);
 }
 
-static int enc_count, enc_last_dir, enc_presses;
 static void page_encoder(const input_ev_t *in)
 {
     char line[32];
@@ -101,39 +135,6 @@ static void page_mic(const voice_t *v, const char *diag)
     for (int x = 1; x < OLED_W; x++) oled_pixel(x, 45 - wave[x] * 9 / 128, true);
 }
 
-// Are the I2S clocks really toggling on the pins? Read them back a few
-// hundred times and count edges.
-static int edges(int pin)
-{
-    gpio_input_enable(pin);
-    int last = gpio_get_level(pin), n = 0;
-    for (int i = 0; i < 400; i++) { int l = gpio_get_level(pin); if (l != last) n++; last = l; }
-    return n;
-}
-
-// Is anything driving SD? Pull it up, then down, and see if the data
-// follows the pull. A working mic overrides the weak pull in both cases.
-static const char *probe_sd(void)
-{
-    int32_t l, r; int nzl, nzr;
-    gpio_set_pull_mode(PIN_I2S_DIN, GPIO_PULLUP_ONLY);
-    vTaskDelay(pdMS_TO_TICKS(30));
-    audio_get_raw(&l, &r, &nzl, &nzr);
-    int32_t lu = l; int level_up = gpio_get_level(PIN_I2S_DIN);
-    bool up_high = (uint32_t)l > 0xF0000000u;
-    gpio_set_pull_mode(PIN_I2S_DIN, GPIO_PULLDOWN_ONLY);
-    vTaskDelay(pdMS_TO_TICKS(30));
-    audio_get_raw(&l, &r, &nzl, &nzr);
-    int level_down = gpio_get_level(PIN_I2S_DIN);
-    bool down_low = l == 0 && r == 0;
-    gpio_set_pull_mode(PIN_I2S_DIN, GPIO_FLOATING);
-    ESP_LOGI(TAG, "SD probe: with pull-up word 0x%08lX pin=%d, with pull-down word 0x%08lX pin=%d",
-             (unsigned long)lu, level_up, (unsigned long)l, level_down);
-    if (up_high && down_low) return "SD follows the pull: NOTHING drives it (mic has no VDD, no clocks, or SD is not on GPIO10)";
-    if (!up_high && !down_low) return "SD is driven by something";
-    return up_high ? "SD stuck low-ish: is it shorted to GND?" : "SD stuck high-ish: is it shorted to 3V3?";
-}
-
 static void i2c_rescan(i2c_master_bus_handle_t bus)
 {
     char found[64] = "";
@@ -154,10 +155,10 @@ void app_test_run(i2c_master_bus_handle_t bus)
     input_init();
     ESP_LOGI(TAG, "mic test: mic -> both DACs, %d Hz; tap BOOT or the encoder for the sweep tone; OLED %s",
              CONFIG_KIT_SAMPLE_RATE, oled_present() ? "found" : "not found, rescanning");
-    int frame = 0;
-    int64_t last_log = 0, last_scan = 0, last_probe = 0, enc_t = 0;
     ESP_LOGI(TAG, "clock check: BCLK GPIO%d %s, WS GPIO%d %s", PIN_I2S_BCLK, edges(PIN_I2S_BCLK) > 10 ? "toggling" : "NOT toggling",
              PIN_I2S_WS, edges(PIN_I2S_WS) > 2 ? "toggling" : "NOT toggling");
+    int frame = 0, restarts = 0;
+    int64_t last_log = 0, last_scan = 0, enc_t = 0, stuck_since = 0;
     char diag[64] = "";
     while (1) {
         int64_t now = esp_timer_get_time();
@@ -170,17 +171,25 @@ void app_test_run(i2c_master_bus_handle_t bus)
         }
         if (in.pressed) enc_t = now;
         if (now - last_scan > 2000000 && !oled_present()) { last_scan = now; i2c_rescan(bus); }
-        if (now - last_probe > 3000000) {
-            last_probe = now;
-            int32_t l, r; int nzl, nzr;
-            audio_get_raw(&l, &r, &nzl, &nzr);
-            if (nzl == 0) ESP_LOGW(TAG, "%s", probe_sd());
-        }
+
         voice_t v; char nm[5];
         audio_get_voice(&v);
         int32_t rl, rr; int nzl, nzr;
         audio_get_raw(&rl, &rr, &nzl, &nzr);
         snprintf(diag, sizeof diag, "%s", diagnose(rl, rr, nzl, nzr, 64));
+
+        // stuck mic: all ones or all zeros for a while although the clocks run
+        bool stuck = (uint32_t)rl == 0xFFFFFFFFu || (rl == 0 && nzl == 0);
+        if (!stuck) stuck_since = 0;
+        else if (!stuck_since) stuck_since = now;
+        else if (now - stuck_since > 700000) {
+            stuck_since = 0;
+            ESP_LOGW(TAG, "mic stuck at 0x%08lX for 0.7 s; BCLK %s, WS %s; restarting I2S (restart #%d)", (unsigned long)rl,
+                     edges(PIN_I2S_BCLK) > 10 ? "running" : "STOPPED", edges(PIN_I2S_WS) > 2 ? "running" : "STOPPED", ++restarts);
+            ESP_LOGW(TAG, "%s", probe_sd());
+            audio_restart_i2s();
+        }
+
         if (now - last_log > 500000) {
             last_log = now;
             int bar = (int)((v.db + 60) / 60 * 30);

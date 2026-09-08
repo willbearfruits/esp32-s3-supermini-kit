@@ -135,6 +135,17 @@ static void IRAM_ATTR audio_task(void *arg)
     }
 }
 
+// Stop and restart the I2S clocks. An INMP441 that lost frame sync (data
+// stuck at all ones or zeros) resynchronises on the next WS edge.
+void audio_restart_i2s(void)
+{
+    i2s_channel_disable(rx);
+    i2s_channel_disable(tx);
+    vTaskDelay(pdMS_TO_TICKS(20));
+    i2s_channel_enable(tx);
+    i2s_channel_enable(rx);
+}
+
 void audio_start(void)
 {
     i2s_setup();
