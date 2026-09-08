@@ -198,10 +198,11 @@ void app_test_run(i2c_master_bus_handle_t bus)
             int bar = (int)((v.db + 60) / 60 * 30);
             char line[40];
             snprintf(line, sizeof line, "|%-30.*s|", bar > 0 ? bar : 0, "##############################");
-            ESP_LOGI(TAG, "mic %6.1f dBFS %s %s %-3s | raw L 0x%08lX R 0x%08lX nz %d/%d | %s | cpu %2.0f%% oled %s%s",
+            int mn, mx, dc;
+            audio_get_raw_stats(&mn, &mx, &dc);
+            ESP_LOGI(TAG, "mic %6.1f dBFS %s %s %-3s | raw L 0x%08lX R 0x%08lX nz %d/%d | 24-bit min %d max %d dc %d | %s | cpu %2.0f%%%s",
                      v.db, line, v.gate ? "VOICE" : "quiet", v.voiced ? note_name(v.note, nm) : "---",
-                     (unsigned long)rl, (unsigned long)rr, nzl, nzr, diag, audio_cpu_load() * 100,
-                     oled_present() ? "on" : "none", tone ? " tone" : "");
+                     (unsigned long)rl, (unsigned long)rr, nzl, nzr, mn, mx, dc, diag, audio_cpu_load() * 100, tone ? " tone" : "");
         }
         if (oled_present()) {
             oled_clear();
