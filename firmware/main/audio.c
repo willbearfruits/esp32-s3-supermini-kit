@@ -46,32 +46,28 @@ static biquad_t hp_in;
 
 static i2s_std_gpio_config_t gpio_cfg_saved;
 
-// Drive an I2S pin as a plain GPIO for a moment and read it back, to find
-// a pin held by the wiring (a short to GND or 3V3 stops the clock dead).
+// Is an I2S pin held by the wiring? Weak test only: a pull-up alone must
+// lift a free line, a pull-down alone must drop it. Never drives the pin
+// hard, so a real short cannot pull the supply down.
 // Returns 0 = pin free, 1 = held LOW, 2 = held HIGH.
 int audio_pin_held(int pin)
 {
     i2s_channel_disable(rx);
     i2s_channel_disable(tx);
     gpio_reset_pin(pin);
-    // weak first: a pull-up alone should lift a free line
     gpio_set_direction(pin, GPIO_MODE_INPUT);
-    gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY); esp_rom_delay_us(200);
-    int weak_high = gpio_get_level(pin);
-    // then push-pull: only a hard short beats the driver
-    gpio_set_direction(pin, GPIO_MODE_INPUT_OUTPUT);
-    gpio_set_level(pin, 1); esp_rom_delay_us(50);
-    int high_reads = gpio_get_level(pin);
-    gpio_set_level(pin, 0); esp_rom_delay_us(50);
-    int low_reads = gpio_get_level(pin);
+    gpio_set_pull_mode(pin, GPIO_PULLUP_ONLY); esp_rom_delay_us(300);
+    int up = gpio_get_level(pin);
+    gpio_set_pull_mode(pin, GPIO_PULLDOWN_ONLY); esp_rom_delay_us(300);
+    int down = gpio_get_level(pin);
     gpio_reset_pin(pin);
-    ESP_LOGI(TAG, "pin %d: pull-up alone reads %d, driven high reads %d, driven low reads %d", pin, weak_high, high_reads, low_reads);
     i2s_channel_reconfig_std_gpio(tx, &gpio_cfg_saved);
     i2s_channel_reconfig_std_gpio(rx, &gpio_cfg_saved);
     i2s_channel_enable(tx);
     i2s_channel_enable(rx);
-    if (high_reads == 0) return 1;
-    if (low_reads == 1) return 2;
+    ESP_LOGI(TAG, "pin %d: with pull-up reads %d, with pull-down reads %d", pin, up, down);
+    if (up == 0 && down == 0) return 1;
+    if (up == 1 && down == 1) return 2;
     return 0;
 }
 
