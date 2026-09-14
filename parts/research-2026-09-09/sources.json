@@ -1,0 +1,66 @@
+[
+  {
+    "file": "PCM5102A-chip-datasheet.pdf",
+    "source_url": "https://www.ti.com/lit/ds/symlink/pcm5102a.pdf",
+    "retrieved": "2026-09-09",
+    "bytes": 1195126,
+    "sha256": "a522083606b8e994875883215046fbdb92fd362996ca97719d259fbe9df07a85",
+    "applicability": "Chip datasheet; does not dimension candidate DAC module"
+  },
+  {
+    "file": "Waveshare-ESP32-S3-Zero-dimensions.jpg",
+    "source_url": "https://files.waveshare.com/wiki/ESP32-S3-Zero/ESP32-S3-Zero-2D-size.jpg",
+    "retrieved": "2026-09-09",
+    "bytes": 102915,
+    "sha256": "b0b2180e3d6a0e3e4de26bdc29eaae7ea37687f3a068a3ae41e6ca227be241cd",
+    "applicability": "Waveshare board only; generic SuperMini match not established"
+  },
+  {
+    "file": "Waveshare-ESP32-S3-Zero-v2.stp",
+    "source_url": "https://files.waveshare.com/wiki/ESP32-S3-Zero/ESP32-S3-Zero_v2-138eb3753cf14afa3252058c380ca416.stp",
+    "retrieved": "2026-09-09",
+    "bytes": 3191521,
+    "sha256": "1eb1a41173dad5238624b8c2e7ab529890d60431e895dc3d2bb4191fa31fd9b4",
+    "applicability": "Waveshare v2 manufacturer model; format/header checked, no mechanical fit validation"
+  },
+  {
+    "file": "ALPS-EC11E15244G1-dimensions.gif",
+    "source_url": "https://tech.alpsalpine.com/cms.media/product_detail_fig_ec11_d_82_en_2cca8e7a94.gif",
+    "retrieved": "2026-09-09",
+    "bytes": 15312,
+    "sha256": "499332fb817d50a28beae8f7677436aaf51ae45f32add81709d1e24adbd67109",
+    "applicability": "Exact ALPS part only; not generic EC11 lot"
+  },
+  {
+    "file": "ALPS-EC11E15244G1-mounting.gif",
+    "source_url": "https://tech.alpsalpine.com/cms.media/product_detail_fig_ec11_d_83_en_1f3da99620.gif",
+    "retrieved": "2026-09-09",
+    "bytes": 7013,
+    "sha256": "75ced8a6559fbca27492336a2d959c5ee7a9ebe95eaff5b396519d92b6f15d91",
+    "applicability": "Exact ALPS part only; mounting-side view"
+  },
+  {
+    "file": "ALPS-RKJXV1224005-dimensions.gif",
+    "source_url": "https://tech.alpsalpine.com/cms.media/product_detail_fig_rkjxk_d_52_en_91144bd9bb.gif",
+    "retrieved": "2026-09-09",
+    "bytes": 30268,
+    "sha256": "57feff5d1dd491470d4c96bc55143c1eae159ceffd135943c6443b62099cbb6d",
+    "applicability": "RKJXV1224005; supplier must confirm exact part"
+  },
+  {
+    "file": "ALPS-RKJXV1224005-mounting.gif",
+    "source_url": "https://tech.alpsalpine.com/cms.media/product_detail_fig_rkjxk_d_53_en_9117e0a2e7.gif",
+    "retrieved": "2026-09-09",
+    "bytes": 23619,
+    "sha256": "785c07bdd7ea4d996efa4a7db8b65600b2fc107f69d6367090ef480e299fca1c",
+    "applicability": "RKJXV1224005; mounting-side view"
+  },
+  {
+    "file": "ALPS-RKJXV1224005-lever.gif",
+    "source_url": "https://tech.alpsalpine.com/cms.media/product_detail_fig_rkjxk_d_54_en_8c918778f3.gif",
+    "retrieved": "2026-09-09",
+    "bytes": 11748,
+    "sha256": "e3d5aa2f83e23e2dbab2d6e9e82253ffd40843512f0dda3834b5d98b6123d652",
+    "applicability": "RKJXV1224005 cap-interface drawing"
+  }
+]

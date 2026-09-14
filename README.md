@@ -29,6 +29,13 @@ The older eight-mode voice instrument is still selectable at build time.
 All three audio chips share one I2S port. See [docs/pinmap.md](docs/pinmap.md)
 for the wiring and why that works.
 
+The current [minimal purchasing list](parts/minimal-kit.md) is **your carrier PCB
+plus seven parts**: ESP32-S3, purple PCM5102A board, joystick board with pins,
+bare encoder, round six-pin I2S mic, 0.96-inch I2C OLED and MPU6050 board.
+Available as [PDF](parts/minimal-kit.pdf) and [CSV](parts/minimal-kit.csv).
+The [earlier expanded research](parts/purchasing-kit.md) keeps the additional
+options and CAD references. Shipping and exact module dimensions remain unverified.
+
 ## Repo layout
 
 ```

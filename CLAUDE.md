@@ -21,7 +21,8 @@ cd firmware
 idf.py set-target esp32s3      # once, or after deleting build/
 idf.py build
 idf.py flash monitor           # board enumerates over native USB (USB Serial/JTAG)
-idf.py menuconfig              # tunables under "Kit loopback"
+idf.py menuconfig              # tunables under "Kit firmware"
+tools/app.sh looper|instrument|test   # switch the application in sdkconfig and rebuild
 ```
 
 `sdkconfig` is generated and gitignored; edit `sdkconfig.defaults` for anything
@@ -31,10 +32,13 @@ reading the serial log described in README.md. Build logs on failure are under
 
 ## Firmware architecture
 
-Single ESP-IDF app in `firmware/main/`, project name `kit_instrument`, two
+Single ESP-IDF app in `firmware/main/`, project name `kit_instrument`, three
 applications selected by the Kconfig choice `KIT_APP` (menuconfig -> Kit
-firmware -> Application): the voice looper (default) and the older eight-mode
-voice instrument. Both share the engine below. The build uses `-O3
+firmware -> Application, or `tools/app.sh`): the voice looper (default), the
+older eight-mode voice instrument, and a hardware test. All share the engine
+below; `main.c` does the common bring-up (pin self-test, I2C bus recovery and
+scan, OLED, `audio_start`) and then calls `app_<name>_run`. `fx_list.c` picks
+the fx table per application. The build uses `-O3
 -ffast-math`, PSRAM (2 MB embedded quad) and a custom `partitions.csv`
 (1.5 MB app, 2.4 MB wear-levelled FAT at `/storage`).
 
@@ -75,6 +79,13 @@ voice instrument. Both share the engine below. The build uses `-O3
   while it runs, hold to leave).
 - Instrument (`CONFIG_KIT_APP_INSTRUMENT`): `app_instrument.c` plus the
   `fx_*.c` modes; untested at 32 kHz.
+- Test (`CONFIG_KIT_APP_TEST`): `app_test.c` with `fx_sine.c` and `input.c`.
+  Mic straight to the DACs, OLED shows level, note, waveform and a one-line
+  diagnosis built from the raw I2S words (no data, wrong slot, stuck line,
+  loose wire), plus reset reason and an RTC boot counter for the first seconds
+  so brownout loops are visible without serial. Encoder turn shows its page,
+  push toggles a 440 Hz sine with a -50..0 dB sweep. This is the app to flash
+  when bringing up a new board or debugging wiring.
 - `selftest.c` runs at boot: I2S pin short test and mic line pull test.
 - `oled.c` is a minimal SSD1306 driver on `esp_lcd` with 5x7 and 2x text,
   circles, lines, bitmaps. Other I2C addresses: ToF 0x29, IMU 0x68.
@@ -84,10 +95,26 @@ voice instrument. Both share the engine below. The build uses `-O3
   can reset the chip; `esptool.py --after hard_reset chip_id` puts it back in
   the app.
 
-## Docs and hardware folders
+## Docs, parts and mechanical folders
 
-`docs/pinmap.md` is the wiring reference, including the PCM5102A solder-bridge
-settings (FLT L, DEMP L, XSMT H, FMT L) that trip people up. `docs/pinout.md`,
-`parts/bom.csv`, `3d/`, `images/` and `hardware/{schematic,pcb,manufacturing}`
-were created by the project scaffold and are mostly empty placeholders for the
-PCB and enclosure milestones.
+- `docs/pinmap.md` is the wiring reference, including the PCM5102A
+  solder-bridge settings (FLT L, DEMP L, XSMT H, FMT L) that trip people up.
+  `docs/pinmap.html` is generated and gitignored. `docs/acoustics.md` explains
+  the Helmholtz maths the OpenSCAD files use.
+- `enclosure/` is the current printable case: `enclosure.scad` (parametric,
+  `part=` selects preview/exploded/assembled/shell/lid), `parts.scad`
+  (component models and cutouts), `print_bed.scad`. `./render.sh` needs
+  OpenSCAD on PATH and regenerates `out/*.png` and `out/*.stl`, which are
+  kept in the repo. Designed for a 0.8 mm nozzle (walls in multiples of 0.8 mm) and
+  heat-set inserts; keep those constraints when changing dimensions. Its
+  README is the assembly guide.
+- `3d/` holds the earlier concept bodies (slab, ocarina, cup) sharing their
+  own `parts.scad` whose module sizes are typical values, not measurements.
+- `parts/minimal-kit.md` is the current purchasing list (carrier PCB plus
+  seven parts, listing leads only, nothing verified). `purchasing-kit.md` is
+  the older expanded research; `build-purchasing-doc.py` regenerates its
+  HTML/CSV and the resource manifest from the markdown (needs the Python
+  `markdown` package). `research-2026-09-09/` has downloaded datasheets and
+  drawings.
+- `docs/pinout.md`, `images/` and `hardware/{schematic,pcb,manufacturing}`
+  are scaffold placeholders for the KiCad carrier PCB milestone.

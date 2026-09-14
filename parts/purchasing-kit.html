@@ -1,0 +1,357 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ESP32-S3 audio kit — purchasing shortlist</title><style>
+@page { size: A4; margin: 16mm 14mm; }
+* { box-sizing: border-box; }
+body { font: 15px/1.55 system-ui, sans-serif; color: #182b37; background: #eef2f4; margin: 0; }
+main { max-width: 1150px; margin: 36px auto; background: white; padding: 44px 50px; border-top: 7px solid #007f78; }
+h1 { font-size: 32px; line-height: 1.15; letter-spacing: -.8px; margin-top: 0; }
+h2 { font-size: 22px; margin-top: 36px; border-bottom: 1px solid #d7e1e4; padding-bottom: 8px; }
+a { color: #006c77; text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; line-height: 1.45; margin: 18px 0; }
+th { background: #e6f0f0; text-align: left; }
+th, td { border: 1px solid #d6e0e4; padding: 9px; vertical-align: top; }
+tr:nth-child(even) td { background: #f6f8fa; }
+blockquote { margin: 20px 0; padding: 8px 20px; border-left: 4px solid #00857b; background: #f1f7f6; }
+code { font-size: .9em; }
+li { margin: 7px 0; }
+.nav { font-size: 13px; margin-bottom: 24px; }
+@media print {
+  body { background: white; font-size: 10pt; line-height: 1.42; }
+  main { margin: 0; padding: 0; max-width: none; border: 0; }
+  h1 { font-size: 23pt; } h2 { font-size: 15pt; break-after: avoid; margin-top: 20pt; }
+  table { font-size: 8.1pt; } th, td { padding: 5pt; }
+  tr, blockquote { break-inside: avoid; } thead { display: table-header-group; }
+  .nav { display: none; }
+}
+</style></head><body><main><div class="nav"><a href="purchasing-kit.pdf">PDF</a> · <a href="purchasing-kit.csv">Editable CSV</a> · <a href="purchasing-kit.md">Markdown source</a></div><h1>ESP32-S3 audio kit — purchasing shortlist</h1>
+<p><strong>Earlier expanded research.</strong> The current build uses <a href="minimal-kit.md">seven purchased parts plus your carrier PCB</a>, with a joystick board with pins and a bare encoder. Use that minimal list for the current kit; the broader options below are retained as research references.</p>
+<p>Research date: <strong>9 September 2026</strong>. Working quantity: <strong>10 complete kits</strong>. Encoder and joystick are <strong>bare through-hole components, without breakout boards</strong>; the other electronics are modules. Destination and this quantity assumption await confirmation.</p>
+<p><strong>Purchase status: shipping and exact-product drawing checks are pending. No listing is yet confirmed to meet all your requirements.</strong> This document contains real listing leads, manufacturer documentation and the remaining parts needed to finish the build. It is not an AliExpress cart, and no orders have been placed.</p>
+<p>AliExpress product pages could not be read successfully through the research tool. The listing links below were identified through indexed Pricearchive/Alitools records; their titles establish candidate parts and advertised pack sizes only. Stock, selected variants, seller identity, authenticity, Choice eligibility, prices and delivery charges remain unverified. The adjacent “listing evidence” links preserve that distinction.</p>
+<h2>Your buying requirements</h2>
+<ul>
+<li>Prefer one <strong>10-piece lot</strong> per part; larger lots are acceptable. A listing headed “1–10 pieces” needs the <strong>10-piece variant</strong>, with cart quantity <strong>1</strong>. Ten single pieces or five pairs are exceptions, not automatically equivalent to the requested lot.</li>
+<li>Require <strong>zero shipping charge to your delivery address</strong> for the selected lot. I interpret “AliExpress special” as <strong>Choice</strong>, pending confirmation. Alibaba describes Choice shipping as conditional on market and purchase thresholds; its general description does not establish today's terms for your address. Check both the product and final basket. <a href="https://www.alibabagroup.com/en-US/document-1696296090350911488">Alibaba's Choice explanation</a>.</li>
+<li>Require a manual/datasheet with <strong>dimensions and mounting information for the actual item supplied</strong>. For modules this means the PCB, header positions, holes, connector heights and protrusions. A chip's package drawing alone does not qualify a module.</li>
+<li>Prefer DipTrace symbols/footprints and matching STEP models. A similar-looking component or another manufacturer's breakout is only a reference.</li>
+</ul>
+<h2>Main components: one of each per kit</h2>
+<p>Every row below has a target of <strong>10 physical pieces</strong>. Optional sensors are included in that target so all ten kits can have motion and distance control. <strong>Shipping/Choice: unverified for every row. Live lot price: unverified for every row.</strong></p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Part and exact selection</th>
+<th>Advertised lot and AliExpress link</th>
+<th>Documentation / remaining gap</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>K01</td>
+<td><strong>ESP32-S3 SuperMini, ESP32-S3FH4R2</strong>, 4 MB flash, 2 MB PSRAM, native USB-C</td>
+<td><strong>1–10 pcs</strong>, select 10: <a href="https://www.aliexpress.com/item/1005012191736844.html">listing</a> · <a href="https://sv.pricearchive.org/aliexpress.com/item/1005012191736844">listing evidence</a></td>
+<td>Exact SuperMini PCB drawing not verified. Firmware requires this S3/PSRAM configuration; a C3 SuperMini is unsuitable. Documented Waveshare alternative below.</td>
+</tr>
+<tr>
+<td>K02</td>
+<td><strong>INMP441 I2S microphone breakout</strong>, with L/R pin accessible</td>
+<td><strong>1/5/10 pcs</strong>, select 10: <a href="https://www.aliexpress.com/item/1005009006830769.html">listing</a> · <a href="https://vi.pricearchive.org/aliexpress.com/item/1005009006830769">listing evidence</a></td>
+<td><a href="https://invensense.tdk.com/wp-content/uploads/2015/02/INMP441.pdf">TDK chip datasheet</a>. Exact board dimensions, acoustic-port position and pin layout still needed. Do not select a different microphone from a mixed listing without checking it.</td>
+</tr>
+<tr>
+<td>K03</td>
+<td><strong>PCM5102A stereo I2S DAC module</strong>, preferably with fitted 3.5 mm line-output jack</td>
+<td><strong>1–10 pcs</strong>, select 10: <a href="https://www.aliexpress.com/item/1005010369195534.html">listing</a> · <a href="https://www.pricearchive.org/aliexpress.com/item/1005010369195534">listing evidence</a></td>
+<td><a href="https://www.ti.com/lit/ds/symlink/pcm5102a.pdf">TI datasheet</a> · <a href="research-2026-09-09/PCM5102A-chip-datasheet.pdf">saved PDF</a>. Exact PCB/jack drawing, regulator and mute straps still needed. This is line output; see headphone amplifier below.</td>
+</tr>
+<tr>
+<td>K04</td>
+<td><strong>MAX98357A mono I2S speaker amplifier module</strong>; require the <strong>A</strong> version</td>
+<td><strong>10 pcs / 1 pc</strong>, select 10: <a href="https://www.aliexpress.com/item/1005009759175798.html">listing</a> · <a href="https://www.pricearchive.org/aliexpress.com/item/1005009759175798">listing evidence</a></td>
+<td><a href="https://www.analog.com/en/products/MAX98357A.html">Analog Devices datasheet/CAD</a>. Listing title omits the suffix: confirm A, board dimensions, SD/GAIN circuitry and terminal block. A uses I2S; B uses left-justified audio.</td>
+</tr>
+<tr>
+<td>K05</td>
+<td><strong>0.96-inch SSD1306 OLED</strong>, 128×64, <strong>4-pin I2C</strong>, white</td>
+<td><strong>10 pcs / lot</strong>: <a href="https://www.aliexpress.com/item/1005008169257099.html">listing</a> · <a href="https://ro.pricearchive.org/aliexpress.com/item/1005008169257099">listing evidence</a></td>
+<td>Exact PCB, glass, active-area and mounting-hole drawing needed. Confirm 0x3C address, 3.3 V operation and header order. Do not substitute SH1106, 128×32 or SPI.</td>
+</tr>
+<tr>
+<td>K06</td>
+<td><strong>Bare EC11 rotary encoder with push switch</strong>, 3 encoder pins + 2 switch pins, vertical shaft</td>
+<td><strong>10 pcs</strong>, choose shaft style/length: <a href="https://www.aliexpress.com/item/1005005239756119.html">listing</a> · <a href="https://sv.pricearchive.org/aliexpress.com/item/1005005239756119">listing evidence</a></td>
+<td><strong>Hold for seller drawing.</strong> Generic EC11 does not identify one footprint. Need body, lug spacing, shaft length/diameter, bushing, detents and pulses. Exact documented ALPS alternative below. No KY-040 board.</td>
+</tr>
+<tr>
+<td>K07</td>
+<td><strong>Bare ALPS RKJXV1224005 joystick</strong>, two 10 kΩ linear pots, spring return, center push</td>
+<td><strong>10–100 pcs</strong>, select 10: <a href="https://www.aliexpress.com/item/1005011995304794.html">listing</a> · <a href="https://ro.pricearchive.org/aliexpress.com/item/1005011995304794">listing evidence</a></td>
+<td><a href="https://tech.alpsalpine.com/e/products/detail/RKJXV1224005/">ALPS exact-part documentation</a>. <strong>17.8 × 21.3 × 11.2 mm</strong>; dimension, mounting and lever drawings saved below. Best exact-model 10-piece lead found. Seller identity/authenticity and supplied model still need confirmation. Cap inclusion unknown. No KY-023 board.</td>
+</tr>
+<tr>
+<td>K08</td>
+<td><strong>MPU6050 / GY-521 breakout</strong>, gyro + accelerometer</td>
+<td><strong>10 pcs</strong>: <a href="https://www.aliexpress.com/item/1005011896641210.html">listing</a> · <a href="https://www.pricearchive.org/aliexpress.com/item/1005011896641210">listing evidence</a></td>
+<td><a href="https://product.tdk.com/system/files/dam/doc/product/sensor/mortion-inertial/imu/data_sheet/mpu-6000-datasheet1.pdf">TDK chip datasheet</a>. Exact GY-521 PCB drawing needed. Require 3.3 V-compatible power/I2C and AD0 low for 0x68. Optional in firmware, included here.</td>
+</tr>
+<tr>
+<td>K09</td>
+<td><strong>VL53L0X I2C distance-sensor breakout</strong></td>
+<td><strong>10 pcs / 1 pc</strong>, select specifically VL53L0X and 10: <a href="https://www.aliexpress.com/item/1005010777247203.html">listing</a> · <a href="https://uk.pricearchive.org/aliexpress.com/item/1005010777247203">listing evidence</a></td>
+<td><a href="https://www.st.com/resource/en/datasheet/vl53l0x.pdf">ST datasheet</a>. Mixed-family listing: exact sensor, direct I2C interface, board drawing and voltage compatibility need confirmation. VL53L1X and serial-output TOF boards are not drop-in replacements for this firmware. Optional, included here.</td>
+</tr>
+<tr>
+<td>K10</td>
+<td><strong>40 mm round speaker, 4 Ω, 3 W nominal</strong>, with leads if possible</td>
+<td><strong>1/2/10 pcs</strong>, select 10 and 40 mm: <a href="https://www.aliexpress.com/item/1005009533204416.html">listing</a> · <a href="https://www.pricearchive.org/aliexpress.com/item/1005009533204416">listing evidence</a></td>
+<td><strong>Hold for full drawing.</strong> Diameter alone is insufficient: magnet depth, rim, terminals and mounting are needed. The enclosure's 5.5 mm speaker depth is an unmeasured placeholder.</td>
+</tr>
+<tr>
+<td>K11</td>
+<td><strong>Stereo headphone amplifier</strong>, if headphones are required; TDA1308 board is a candidate</td>
+<td><strong>10 pcs / 1 pc</strong>, select 10: <a href="https://www.aliexpress.com/item/1005009791615188.html">listing</a> · <a href="https://ms.pricearchive.org/aliexpress.com/item/1005009791615188">listing evidence</a></td>
+<td><strong>Design/sourcing hold.</strong> <a href="https://www.nxp.com/products/TDA1308">NXP TDA1308 documentation</a>. Require schematic, dimensions, stereo headphone load rating, gain and output coupling. Listing calls it a microphone preamp, so its suitability is unconfirmed. TDA1308 is discontinued; do not commit a new production design on this lead alone.</td>
+</tr>
+</tbody>
+</table>
+<p>No total cost is provided: indexed starting prices often correspond to one piece or a different variant. The CSV leaves actual selected-lot price and shipping fields blank for verified quotes.</p>
+<h2>The bare controls and their drawings</h2>
+<p><strong>Joystick K07:</strong> ALPS documents the exact RKJXV1224005, including its center switch. It is marked <strong>not recommended for new designs</strong>. For a longer-lived design, consider the current <strong>RKJXV122400R</strong>, documented as <strong>18.2 × 21.7 × 11.2 mm</strong>. The two outlines differ; do not use one drawing for the other. A matching 10-piece AliExpress lot for the R version was not confirmed. <a href="https://tech.alpsalpine.com/e/products/detail/RKJXV1224005/">4005 specifications</a> · <a href="https://tech.alpsalpine.com/e/products/detail/RKJXV122400R/">400R specifications</a>.</p>
+<table>
+<thead>
+<tr>
+<th>Saved manufacturer drawing</th>
+<th>What it establishes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="research-2026-09-09/ALPS-RKJXV1224005-dimensions.gif">RKJXV1224005 dimensions</a></td>
+<td>Body, terminals and overall geometry</td>
+</tr>
+<tr>
+<td><a href="research-2026-09-09/ALPS-RKJXV1224005-mounting.gif">RKJXV1224005 mounting holes</a></td>
+<td>PCB hole layout; observe the manufacturer's mounting-side view</td>
+</tr>
+<tr>
+<td><a href="research-2026-09-09/ALPS-RKJXV1224005-lever.gif">RKJXV1224005 lever</a></td>
+<td>Cap-interface geometry</td>
+</tr>
+<tr>
+<td><a href="research-2026-09-09/ALPS-EC11E15244G1-dimensions.gif">EC11E15244G1 dimensions</a></td>
+<td>Exact ALPS encoder outline</td>
+</tr>
+<tr>
+<td><a href="research-2026-09-09/ALPS-EC11E15244G1-mounting.gif">EC11E15244G1 mounting holes</a></td>
+<td>Exact ALPS encoder PCB hole layout</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Encoder alternative:</strong> <a href="https://tech.alpsalpine.com/e/products/detail/EC11E15244G1/">ALPS EC11E15244G1</a> has a 20 mm flat shaft, 30 detents, 15 pulses and a push switch. An <a href="https://www.aliexpress.com/item/1005008895804725.html">AliExpress listing naming this exact model</a> advertises <strong>2 pieces</strong> (<a href="https://www.pricearchive.org/aliexpress.com/item/1005008895804725">listing evidence</a>). Five packs would yield ten encoders, but <strong>does not meet your 10-piece-lot requirement</strong>. It is an alternative only if you accept that exception; shipping is also unverified. The saved ALPS drawings do <strong>not</strong> qualify the generic K06 lot.</p>
+<p>Bare controls need soldering to a carrier PCB, including their mechanical support tabs. The assembled carrier can then form a plug-in kit. They will not plug straight into the five-pin breakout sockets shown in generic Arduino wiring diagrams.</p>
+<h2>DipTrace libraries and 3D models</h2>
+<p><strong>No exact native DipTrace symbol/footprint set was verified for the AliExpress lots.</strong> These are the useful resources actually found:</p>
+<table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Resource</th>
+<th>Status and applicability</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ALPS EC11E15244G1</td>
+<td><a href="https://tech.alpsalpine.com/e/products/detail/EC11E15244G1/">ALPS product page</a></td>
+<td>Exact dimension/mounting drawings saved. Page offers 3D CAD under member access; model not downloaded or checked.</td>
+</tr>
+<tr>
+<td>ALPS RKJXV122400R</td>
+<td><a href="https://www.snapeda.com/parts/RKJXV122400R/ALPS/view-part/">SnapMagic symbol/footprint/3D page</a></td>
+<td>Page advertises CAD resources but previews/pinout were unavailable. No import or geometry validation performed; not a verified 4005 model. ALPS also offers a member CAD route for the R part.</td>
+</tr>
+<tr>
+<td>Waveshare ESP32-S3-Zero</td>
+<td><a href="https://docs.waveshare.com/ESP32-S3-Zero/Resources-And-Documents">Official hardware resources</a> · <a href="research-2026-09-09/Waveshare-ESP32-S3-Zero-v2.stp">saved STEP</a> · <a href="research-2026-09-09/Waveshare-ESP32-S3-Zero-dimensions.jpg">saved dimension drawing</a></td>
+<td><strong>Manufacturer STEP downloaded</strong>, file header checked. Drawing is 18 × 23.5 mm, 2.54 mm side pitch, 15.24 mm row spacing. These files belong to Waveshare's board; no generic SuperMini match is established.</td>
+</tr>
+<tr>
+<td>Adafruit MAX98357A, product 3006</td>
+<td><a href="https://learn.adafruit.com/adafruit-max98357-i2s-class-d-mono-amp/downloads">Module drawings and Eagle files</a> · <a href="https://github.com/adafruit/Adafruit_CAD_Parts/tree/main/3006%20MAX98357">STEP repository</a></td>
+<td>Manufacturer module CAD available. Applies to Adafruit's board, not automatically K04's clone.</td>
+</tr>
+<tr>
+<td>PCM5102A chip</td>
+<td><a href="https://www.ti.com/product/PCM5102A">TI product/CAD page</a></td>
+<td>Ultra Librarian link for IC symbol, package footprint and 3D. A carrier for K03 needs a module footprint instead.</td>
+</tr>
+<tr>
+<td>MAX98357A chip</td>
+<td><a href="https://www.analog.com/en/products/MAX98357A.html">Analog Devices product/CAD page</a></td>
+<td>Ultra Librarian/SamacSys resources by package. Select the exact package only for a future board using the bare IC.</td>
+</tr>
+<tr>
+<td>Other candidate boards</td>
+<td>Exact module libraries not verified</td>
+<td>Draw the module outline, header pads, mounting holes and keepouts from its supplier drawing after the SKU is fixed.</td>
+</tr>
+</tbody>
+</table>
+<p>DipTrace supports importing other CAD formats. SamacSys explains that its former DipTrace downloads used PADS files and that these now reside in its PADS folder. Treat this as an <strong>import route</strong>, not native DipTrace availability. Follow the installed version's documentation, import footprint and component together, then check pin numbers, hole sizes and model alignment. <a href="https://www.samacsys.com/supporting-diptrace/">SamacSys explanation</a> · <a href="https://www.diptrace.com/support/tutorials/help_html/">DipTrace import documentation</a>.</p>
+<h2>Other parts needed to finish ten kits</h2>
+<p>These quantities are procurement allowances where the carrier has not yet been designed. Search links are explicitly <strong>searches</strong>, not checked product listings. Shipping and drawings remain open for these items too.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Quantity for ten kits</th>
+<th>Buying specification / link</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Encoder knobs</td>
+<td><strong>10</strong>, one 10-pack</td>
+<td><a href="https://www.aliexpress.com/item/33003636792.html">10-piece listing</a> · <a href="https://alitools.io/en/showcase/10pcs-6mm-shaft-hole-amplifier-knob-for-encoder-potentiometer-knobs-33003636792">listing evidence</a>. Match the selected 6 mm shaft profile, bore depth and push clearance; obtain outside dimensions.</td>
+</tr>
+<tr>
+<td>Joystick caps</td>
+<td><strong>10</strong>, if not supplied</td>
+<td>Match the exact ALPS lever drawing. <a href="https://www.aliexpress.com/w/wholesale-10pcs-joystick-thumbstick-cap.html">AliExpress search</a>. Do not assume PS4/PS5/Xbox caps are interchangeable.</td>
+</tr>
+<tr>
+<td>Male header strips</td>
+<td>Budget <strong>20 × 1×40</strong>, 2.54 mm</td>
+<td>Two 10-packs; deduct headers included with modules. <a href="https://www.aliexpress.com/w/wholesale-10pcs-1x40-2.54-male-header.html">Search</a>. Final cut lengths depend on selected boards.</td>
+</tr>
+<tr>
+<td>Female socket strips</td>
+<td>Budget <strong>20 × 1×40</strong>, 2.54 mm</td>
+<td>Two <a href="https://www.aliexpress.com/item/1005013054690432.html">10-piece lots</a> · <a href="https://www.pricearchive.org/aliexpress.com/item/1005013054690432">listing evidence</a>. Confirm socket height/drawing. Cutting ordinary sockets may sacrifice a position; pin budget is provisional.</td>
+</tr>
+<tr>
+<td>USB data cables</td>
+<td><strong>10</strong></td>
+<td>USB-A to USB-C with USB 2.0 data conductors; choose a stated length such as 0.5 m. <a href="https://www.aliexpress.com/w/wholesale-10pcs-usb-a-usb-c-data-cable.html">Search</a>. Charge-only cables cannot flash or export files.</td>
+</tr>
+<tr>
+<td>Power supply</td>
+<td><strong>10 if each kit needs one</strong></td>
+<td>Regulated 5 V supply; initial engineering allowance 2 A per kit, subject to power-path design and measured load. <a href="https://www.aliexpress.com/w/wholesale-10pcs-5v-2a-usb-power-supply.html">Search</a>. Plug type and destination remain open.</td>
+</tr>
+<tr>
+<td>Speaker connectors/leads</td>
+<td><strong>10 mating pairs</strong> if detachable</td>
+<td>Choose one exact connector, e.g. genuine JST-PH 2 mm, with a supplier drawing and adequate current rating. <a href="https://www.aliexpress.com/w/wholesale-10sets-jst-ph-2.0-2pin-wire.html">Search</a>. Terminal blocks supplied on the amp can remove this requirement.</td>
+</tr>
+<tr>
+<td>Headphone sockets</td>
+<td><strong>10 if absent from chosen headphone amp</strong></td>
+<td>3.5 mm stereo TRS socket. <a href="https://www.aliexpress.com/w/wholesale-10pcs-3.5mm-stereo-pcb-jack.html">Search</a>. Select exact part and pinout before drawing PCB; the DAC's existing socket remains line-out unless rerouted.</td>
+</tr>
+<tr>
+<td>Internal wire/harnesses</td>
+<td><strong>10 sets</strong>, final lengths pending</td>
+<td>Short signal wiring plus suitably sized power/speaker wiring. <a href="https://www.aliexpress.com/w/wholesale-10pcs-dupont-jumper-wire-set.html">Search</a>. Bare controls mount on the carrier; jumpers alone do not mount them.</td>
+</tr>
+<tr>
+<td>Carrier PCBs</td>
+<td><strong>10 assembled carriers</strong></td>
+<td><strong>Not ready to order.</strong> The repository has no finished carrier layout/manufacturing files. Bare control footprints, sockets, power distribution and mounting must be designed first. Final carrier resistors/capacitors/connectors require its schematic BOM.</td>
+</tr>
+<tr>
+<td>I2C pull-up resistors</td>
+<td>Allow <strong>20 × 4.7 kΩ</strong>; buy a 100-pack</td>
+<td>Only populate if needed after checking module pull-ups. <a href="https://www.aliexpress.com/w/wholesale-100pcs-4.7k-resistor.html">Search</a>. Package is a carrier-design decision.</td>
+</tr>
+<tr>
+<td>Supply/ADC/filter passives</td>
+<td><strong>TBD by carrier schematic</strong></td>
+<td>Reserve decoupling and bulk capacitance, and control filtering as required. Do not order an invented final value/package list before the power and carrier circuits exist.</td>
+</tr>
+<tr>
+<td>Enclosures/lids</td>
+<td><strong>10 printed pairs</strong></td>
+<td>Existing <a href="../3d/README.md">3D designs</a> require the final part dimensions. Select handheld/ocarina/cup before manufacturing.</td>
+</tr>
+<tr>
+<td>Screws and mounting hardware</td>
+<td>At least <strong>40 lid screws</strong> for handheld; allow a 100-pack</td>
+<td>Handheld CAD has four lid screws per kit; module and carrier fixings are additional. M2-family hardware is the current intent, but length/type depend on final bosses. <a href="https://www.aliexpress.com/w/wholesale-100pcs-m2-self-tapping-screws.html">Search</a>.</td>
+</tr>
+<tr>
+<td>Microphone/speaker gasket material</td>
+<td><strong>10 cut sets</strong></td>
+<td>Cut foam/gasket pieces to the actual mic port and speaker rim. Enclosure-dependent; protect the microphone opening from blockage.</td>
+</tr>
+</tbody>
+</table>
+<p>No external microSD card, SD module or crystal is specified for the current module build: firmware stores songs in the ESP32's onboard flash, and the modules provide their chip support circuits.</p>
+<h2>Battery operation needs a completed power design</h2>
+<p>The enclosure contains placeholders for a 1S battery and TP4056 board, but the repository does not define a finished battery power path. The complete portable version additionally needs <strong>10 protected 1S cells</strong>, <strong>10 suitable charging/power-path assemblies</strong>, <strong>10 5 V converters if not integrated</strong>, <strong>10 switches</strong>, and matching battery harnesses. Battery size/capacity, charge current and connector polarity must be fixed together.</p>
+<p>A TP4056 module alone does not supply a regulated 5 V rail or establish load sharing. Treat battery, charger and boost modules as <strong>design holds</strong>, not an approved three-item shopping recipe. Charge-while-playing also needs deliberate power-path support. <a href="https://ww1.microchip.com/downloads/en/AppNotes/01149c.pdf">Microchip explanation of load sharing and power-path management</a>.</p>
+<p>Search leads for later: <a href="https://www.aliexpress.com/w/wholesale-10pcs-3.7v-lipo-battery-protected.html">protected 1S LiPo lots</a> · <a href="https://www.aliexpress.com/w/wholesale-lipo-power-path-charger-5v-boost.html">charger/power-path modules</a> · <a href="https://www.aliexpress.com/w/wholesale-10pcs-slide-switch.html">switch lots</a>. None has been qualified for shipping, documentation or this power budget.</p>
+<h2>Documented alternatives if generic-board drawings cannot be obtained</h2>
+<p>These help meet the mechanical-documentation requirement. <strong>Ten-piece lots and free shipping have not been established for these alternatives.</strong> Substitution changes the carrier/enclosure design.</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Documented part</th>
+<th>Useful evidence</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MCU</td>
+<td><a href="https://www.waveshare.com/product/esp32-s3-zero.htm">Waveshare ESP32-S3-Zero</a></td>
+<td>4 MB flash + 2 MB PSRAM; manufacturer schematic, dimension drawing and STEP. A firmware-compatible candidate by chip configuration, subject to pinout/revision and hardware checks.</td>
+</tr>
+<tr>
+<td>Speaker amp</td>
+<td><a href="https://www.adafruit.com/product/3006">Adafruit MAX98357A, 3006</a></td>
+<td>19.4 × 17.8 × 3.0 mm product dimensions; dimensioned fab print, schematic, Eagle files and STEP. Account separately for fitted headers/terminal blocks.</td>
+</tr>
+<tr>
+<td>IMU</td>
+<td><a href="https://www.adafruit.com/product/3886">Adafruit MPU6050, 3886</a></td>
+<td>26.0 × 17.8 × 4.6 mm; <a href="https://learn.adafruit.com/mpu6050-6-dof-accelerometer-and-gyro/downloads">fab print, schematic and Eagle files</a>. Different PCB from GY-521.</td>
+</tr>
+<tr>
+<td>Distance</td>
+<td><a href="https://www.pololu.com/product/2490">Pololu VL53L0X carrier, 2490</a></td>
+<td>Approximately 13 × 18 × 2 mm without headers; regulator, I2C level shifting and mounting information.</td>
+</tr>
+<tr>
+<td>OLED</td>
+<td><a href="https://www.joy-it.net/files/files/Produkte/SBC-OLED01/SBC-OLED01_Datasheet_2022-01-06.pdf">Joy-IT SBC-OLED01 documentation</a></td>
+<td>SSD1306 128×64; specified 27.5 × 27.7 × 11.2 mm. Confirm exact revision and full mounting drawing when sourcing.</td>
+</tr>
+<tr>
+<td>Speaker</td>
+<td><a href="https://www.sameskydevices.com/product/audio/speakers/miniature-%2810-mm~40-mm%29/cms-4012-34l200-x7">Same Sky CMS-4012-34L200-X7</a></td>
+<td>40 × 40 × 12 mm, 4 Ω, 3 W nominal; manufacturer's datasheet. Its 12 mm depth differs substantially from the current 5.5 mm enclosure placeholder.</td>
+</tr>
+</tbody>
+</table>
+<h2>Build findings that affect the order</h2>
+<p>These findings come from the repository's README, firmware and enclosure files, checked on the research date:</p>
+<ul>
+<li><strong>MPU6050 is the intended motion sensor.</strong> It contains a gyro and accelerometer, but <code>firmware/main/imu.c</code> currently derives tilt from accelerometer readings only. No separate gyroscope is needed for this implementation.</li>
+<li><strong>VL53L0X is the implemented distance sensor.</strong> Although the pin-map document mentions VL53L1X too, <code>firmware/main/tof.c</code> uses VL53L0X registers and model ID.</li>
+<li><strong>The joystick enclosure model is still KY-023-style.</strong> <code>3d/parts.scad</code> explicitly labels all its sizes as typical/unmeasured; it cannot establish fit for the bare ALPS joystick or a supplier's modules.</li>
+<li><strong>Headphones require additional hardware.</strong> TI specifies PCM5102A line loads down to 1 kΩ; ordinary 16–64 Ω headphones need a suitable amplifier. K11 and its socket/coupling requirements therefore remain in the complete-kit scope. <a href="https://www.ti.com/lit/ds/symlink/pcm5102a.pdf">TI specification</a>.</li>
+<li><strong>Power documentation conflicts.</strong> The pin-map introduction says all modules use 3V3, while its PCM5102A section specifies 5 V input to the regulator-equipped DAC board. Resolve this against actual board schematics; do not power a bare PCM5102A chip with 5 V. Budget the speaker amplifier separately from the tiny board's 3.3 V regulator. MAX98357A's approximately 3 W capability assumes the appropriate 5 V supply/load conditions. <a href="https://www.ti.com/product/PCM5102A">TI DAC documentation</a> · <a href="https://www.analog.com/en/products/MAX98357A.html">Analog Devices amplifier documentation</a>.</li>
+</ul>
+<h2>Information needed to qualify the shortlist</h2>
+<ol>
+<li>Delivery <strong>country and postcode</strong>, and the intended meaning of “AliExpress special” if it is not Choice.</li>
+<li>Confirmation that the target is <strong>ten complete kits</strong>, with only the encoder/joystick bare.</li>
+<li>A readable selected-variant listing/cart view for the promising products, showing pack size and shipping. Exact supplier drawings can then be matched against the part and board photos.</li>
+<li>Carrier, headphone and portable-power decisions before the remaining manufacturing BOM can be finalized.</li>
+</ol>
+<p>Seller message you can copy (draft only; not sent):</p>
+<blockquote>
+<p>I need one lot of 10 identical pieces for a custom PCB. Please confirm the exact manufacturer part number and PCB revision, and provide a dimensioned drawing including all pin/hole positions and total height. For the encoder and joystick I require the bare component, without a breakout board. Please confirm which caps, nuts, headers and connectors are included, and whether a schematic symbol, PCB footprint or STEP model is available for this exact item.</p>
+</blockquote>
+<p>The companion <a href="purchasing-kit.csv">CSV</a> separates required quantity, advertised pack size, dimensional-document status and verification fields. The original placeholder <code>parts/bom.csv</code> has been preserved.</p></main></body></html>

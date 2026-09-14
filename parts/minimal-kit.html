@@ -1,0 +1,86 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Minimal audio kit — 7 parts</title><style>
+@page { size: A4; margin: 16mm 14mm; }
+* { box-sizing: border-box; }
+body { font: 15px/1.55 system-ui, sans-serif; color: #182b37; background: #eef2f4; margin: 0; }
+main { max-width: 1150px; margin: 36px auto; background: white; padding: 44px 50px; border-top: 7px solid #007f78; }
+h1 { font-size: 32px; line-height: 1.15; letter-spacing: -.8px; margin-top: 0; }
+h2 { font-size: 22px; margin-top: 36px; border-bottom: 1px solid #d7e1e4; padding-bottom: 8px; }
+a { color: #006c77; text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; line-height: 1.45; margin: 18px 0; }
+th { background: #e6f0f0; text-align: left; }
+th, td { border: 1px solid #d6e0e4; padding: 9px; vertical-align: top; }
+tr:nth-child(even) td { background: #f6f8fa; }
+blockquote { margin: 20px 0; padding: 8px 20px; border-left: 4px solid #00857b; background: #f1f7f6; }
+code { font-size: .9em; }
+li { margin: 7px 0; }
+.nav { font-size: 13px; margin-bottom: 24px; }
+@media print {
+  body { background: white; font-size: 10pt; line-height: 1.42; }
+  main { margin: 0; padding: 0; max-width: none; border: 0; }
+  h1 { font-size: 23pt; } h2 { font-size: 15pt; break-after: avoid; margin-top: 20pt; }
+  table { font-size: 8.1pt; } th, td { padding: 5pt; }
+  tr, blockquote { break-inside: avoid; } thead { display: table-header-group; }
+  .nav { display: none; }
+}
+
+@media print { body { font-size: 9pt; } h1 { font-size: 21pt; } table { font-size: 8.3pt; } }</style></head><body><main><h1>Minimal audio kit — 7 parts</h1>
+<p><strong>Your carrier PCB + seven purchased parts per kit.</strong> For ten kits: buy ten of each, preferably one 10-piece lot. Scope confirmed 9 September 2026: <strong>joystick on a board with pins; encoder bare</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Part</th>
+<th>Required version</th>
+<th>AliExpress candidate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>ESP32-S3 SuperMini</td>
+<td>ESP32-S3FH4R2, 4 MB flash / 2 MB PSRAM, USB-C</td>
+<td><a href="https://www.aliexpress.com/item/1005012191736844.html">1–10 pcs</a></td>
+</tr>
+<tr>
+<td>2</td>
+<td>PCM5102A I2S DAC</td>
+<td><strong>Purple board</strong>, with audio jack</td>
+<td><a href="https://www.aliexpress.com/item/1005010369195534.html">1–10 pcs</a></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Analog joystick</td>
+<td><strong>KY-023-style board with fitted pins and cap</strong>; X, Y and push button</td>
+<td><a href="https://www.aliexpress.com/item/1005008298413198.html">1/5/10 pcs</a></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Rotary encoder</td>
+<td><strong>Bare EC11 with push button</strong>, vertical shaft</td>
+<td><a href="https://www.aliexpress.com/item/1005005239756119.html">10 pcs</a></td>
+</tr>
+<tr>
+<td>5</td>
+<td>I2S microphone</td>
+<td><strong>Small round six-pin board</strong>; INMP441 assumed from this project</td>
+<td><a href="https://www.aliexpress.com/item/1005009006830769.html">1/5/10 pcs</a></td>
+</tr>
+<tr>
+<td>6</td>
+<td>0.96-inch OLED</td>
+<td>SSD1306, 128×64, <strong>I2C SDA/SCL</strong>, four pins</td>
+<td><a href="https://www.aliexpress.com/item/1005008169257099.html">10 pcs</a></td>
+</tr>
+<tr>
+<td>7</td>
+<td>Gyroscope / accelerometer</td>
+<td><strong>MPU6050 GY-521 board</strong>, I2C</td>
+<td><a href="https://www.aliexpress.com/item/1005011896641210.html">10 pcs</a></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Ordering status:</strong> these are listing leads. Select the 10-piece variant where available. Free shipping/Choice, fitted headers, the purple DAC version, round microphone version and exact board drawings remain <strong>unverified</strong>. Country/postcode and readable seller details are still needed. The ten-kit batch is <strong>70 purchased parts + 10 of your carrier PCBs</strong>.</p>
+<p><strong>Documentation and CAD:</strong> <a href="https://www.ti.com/lit/ds/symlink/pcm5102a.pdf">PCM5102A datasheet</a> · <a href="https://invensense.tdk.com/wp-content/uploads/2015/02/INMP441.pdf">INMP441 datasheet</a> · <a href="https://product.tdk.com/system/files/dam/doc/product/sensor/mortion-inertial/imu/data_sheet/mpu-6000-datasheet1.pdf">MPU6050 datasheet</a> · <a href="https://www.joy-it.net/en/products/COM-KY023JM">KY-023 module manual/dimensions reference</a> · <a href="https://www.joy-it.net/files/files/Produkte/SBC-OLED01/SBC-OLED01_Datasheet_2022-01-06.pdf">SSD1306 OLED module dimensions reference</a>. Reference-board dimensions must be matched to the actual supplier's boards. Exact DipTrace libraries remain unverified; existing drawings and CAD leads are in the <a href="purchasing-kit.md">detailed research</a>.</p>
+<p><strong>Carrier design:</strong> use the actual module header layouts and bare encoder footprint. Keep joystick outputs and I2C pull-ups at 3.3 V. The purple DAC's input power and configuration straps depend on its revision. Its output is line level; if headphone drive is wanted, account for that in the carrier design. <a href="https://www.ti.com/lit/ds/symlink/pcm5102a.pdf">TI DAC specification</a>.</p>
+<p>Listing-title evidence: <a href="https://sv.pricearchive.org/aliexpress.com/item/1005012191736844">ESP32</a> · <a href="https://www.pricearchive.org/aliexpress.com/item/1005010369195534">DAC</a> · <a href="https://ms.pricearchive.org/aliexpress.com/item/1005008298413198">joystick</a> · <a href="https://sv.pricearchive.org/aliexpress.com/item/1005005239756119">encoder</a> · <a href="https://vi.pricearchive.org/aliexpress.com/item/1005009006830769">mic</a> · <a href="https://ro.pricearchive.org/aliexpress.com/item/1005008169257099">OLED</a> · <a href="https://www.pricearchive.org/aliexpress.com/item/1005011896641210">IMU</a>. These indexed records do not verify shipping or the selected variant.</p>
+<p><a href="minimal-kit.csv">Editable seven-part CSV</a> · <a href="purchasing-kit.md">Earlier expanded research</a></p></main></body></html>
