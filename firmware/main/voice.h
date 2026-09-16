@@ -22,3 +22,4 @@ float voice_noise_db(void);   // tracked background level
 void  voice_set_gate_db(float db);
 float voice_get_gate_db(void);
 void  voice_set_stability(int level);   // 0 loose, 1 normal, 2 steady
+void  voice_set_pitch(bool on);          // false: level and gate only, no YIN (saves ~25% CPU while the gate is open)

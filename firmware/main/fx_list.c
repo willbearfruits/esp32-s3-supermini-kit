@@ -5,6 +5,9 @@
 const fx_t *const fx_list[] = { &fx_looper };
 #elif defined(CONFIG_KIT_APP_TEST)
 const fx_t *const fx_list[] = { &fx_sine, &fx_delay, &fx_reverb, &fx_stutter };
+#elif defined(CONFIG_KIT_APP_JAM)
+#include "jam.h"
+const fx_t *const fx_list[] = { &fx_jam };
 #elif defined(CONFIG_KIT_APP_FAUST)
 const fx_t *const fx_list[] = { &fx_sine, &fx_faust_zita, &fx_faust_shift, &fx_faust_wah, &fx_faust_amp,
                                 &fx_faust_flanger, &fx_faust_dyn, &fx_faust_synth };

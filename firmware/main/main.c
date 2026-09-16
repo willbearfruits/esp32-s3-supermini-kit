@@ -79,6 +79,8 @@ void app_main(void)
     ESP_LOGI(TAG, "kit voice looper, %d Hz", CONFIG_KIT_SAMPLE_RATE);
 #elif defined(CONFIG_KIT_APP_TEST) || defined(CONFIG_KIT_APP_FAUST)
     ESP_LOGI(TAG, "kit hardware test, %d modes, %d Hz", fx_count, CONFIG_KIT_SAMPLE_RATE);
+#elif defined(CONFIG_KIT_APP_JAM)
+    ESP_LOGI(TAG, "kit JAM, %d Hz", CONFIG_KIT_SAMPLE_RATE);
 #else
     ESP_LOGI(TAG, "kit voice instrument, %d modes, %d Hz", fx_count, CONFIG_KIT_SAMPLE_RATE);
 #endif
@@ -99,6 +101,8 @@ void app_main(void)
     app_looper_run(bus);
 #elif defined(CONFIG_KIT_APP_TEST) || defined(CONFIG_KIT_APP_FAUST)
     app_test_run(bus);
+#elif defined(CONFIG_KIT_APP_JAM)
+    app_jam_run(bus);
 #else
     app_instrument_run();
 #endif

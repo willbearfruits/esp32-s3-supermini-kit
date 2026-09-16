@@ -13,6 +13,8 @@ menu "Kit firmware"
             bool "Voice instrument (vocoder, autotune, guitar, delay, ...)"
         config KIT_APP_TEST
             bool "Hardware test (mic through delay/reverb/beat repeat, BOOT: effect, hold: preset)"
+        config KIT_APP_JAM
+            bool "JAM (always-running groove: beatbox and singing become drums, bass, lead, chords)"
         config KIT_APP_FAUST
             bool "Faust showcase (mic through Faust effects, BOOT: effect, hold: preset)"
     endchoice
@@ -90,7 +92,7 @@ menu "Kit firmware"
         int "Beatbox onset threshold above the noise floor (dB)"
         range 6 40
         default 20
-        depends on KIT_APP_LOOPER
+        depends on KIT_APP_LOOPER || KIT_APP_JAM
         help
             A hit must exceed the tracked background noise by this much,
             and jump by at least 8 dB, before it counts as a drum.

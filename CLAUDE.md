@@ -22,7 +22,7 @@ idf.py set-target esp32s3      # once, or after deleting build/
 idf.py build
 idf.py flash monitor           # board enumerates over native USB (USB Serial/JTAG)
 idf.py menuconfig              # tunables under "Kit firmware"
-tools/app.sh looper|instrument|test|faust   # switch the application in sdkconfig and rebuild
+tools/app.sh looper|instrument|test|faust|jam   # switch the application in sdkconfig and rebuild
 ```
 
 `sdkconfig` is generated and gitignored; edit `sdkconfig.defaults` for anything
@@ -35,7 +35,7 @@ reading the serial log described in README.md. Build logs on failure are under
 Single ESP-IDF app in `firmware/main/`, project name `kit_instrument`, three
 applications selected by the Kconfig choice `KIT_APP` (menuconfig -> Kit
 firmware -> Application, or `tools/app.sh`): the voice looper (default), the
-older eight-mode voice instrument, a hardware test and a Faust showcase. All share the engine
+older eight-mode voice instrument, a hardware test, a Faust showcase and JAM. All share the engine
 below; `main.c` does the common bring-up (pin self-test, I2C bus recovery and
 scan, OLED, `audio_start`) and then calls `app_<name>_run`. `fx_list.c` picks
 the fx table per application. The build uses `-O3
@@ -43,7 +43,8 @@ the fx table per application. The build uses `-O3
 (1.5 MB app, 2.4 MB wear-levelled FAT at `/storage`).
 
 - `pins.h` is the canonical pin map and must stay in sync with `docs/pinmap.md`.
-  Joystick on GPIO1/2 (ADC1) + GPIO3, encoder GPIO4/5 + GPIO6, I2S 7-10,
+  Joystick VRy on GPIO1, VRx on GPIO2 (ADC1, `input.c` derives the channels
+  from the pins) + switch GPIO3, encoder GPIO4/5 + GPIO6, I2S 7-10,
   amp shutdown 11, I2C 12/13. BOOT (GPIO0) doubles as the encoder push until
   one is wired; a reset while it is held lands in download mode.
 - `audio.c` owns I2S port 0 full duplex at 32 kHz, 64-frame blocks, 3 DMA
@@ -90,6 +91,17 @@ the fx table per application. The build uses `-O3
   after boot as a DAC check. BOOT/encoder tap = next effect, hold 0.5 s =
   next preset (the optional `preset` hook in `fx_t`). This is the app to
   flash when bringing up a new board or debugging wiring.
+- JAM (`CONFIG_KIT_APP_JAM`): `app_jam.c` UI + `jam.c` engine (fx_jam,
+  stereo). Six channels (drums K/S/H, bass, lead, pad chords, sample, mic)
+  on a 32-step grid; melodic rows are degrees of a chosen scale (7, 6 or 5
+  rows + octave), pad rows are chord degrees. Bass and lead are the Faust
+  voice in `faust/jam_voice.dsp` through `faust_voice.cpp`, pad is
+  `synth.c`, drums `kit.c`, master `mix.c` (oversampling off). Sampler
+  records from the mic channel into PSRAM and can be scratched with the
+  joystick in perform mode. Three pages: PATTERN, MIX, SETUP; BOOT hold
+  switches page, tap switches channel, encoder edits, joystick click toggles
+  perform. Mic is only in the mix while its channel is selected. Calls
+  `voice_set_pitch(false)`: no YIN, saves ~25% CPU. No save yet.
 - Faust showcase (`CONFIG_KIT_APP_FAUST`): same UI as the test app, fx list
   from `fx_faust.cpp`. Programs live in `firmware/faust/*.dsp`; run
   `tools/faustgen.sh` (needs `faust` on PATH) after editing one. It writes

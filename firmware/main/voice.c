@@ -33,6 +33,8 @@ static float d[TAU_MAX + 1];
 static voice_t last;
 static float gate_db = CONFIG_KIT_GATE_DB;
 static int drift_hops = DRIFT; static float drift_semi = 0.75f;
+static bool pitch_on = true;
+void voice_set_pitch(bool on) { pitch_on = on; }
 void voice_set_stability(int level) { drift_hops = level <= 0 ? 2 : (level == 1 ? 3 : 6); drift_semi = level <= 0 ? 0.6f : (level == 1 ? 0.75f : 1.0f); }
 void voice_set_gate_db(float db) { gate_db = db; }
 float voice_get_gate_db(void) { return gate_db; }
@@ -140,7 +142,7 @@ void voice_feed(const float *x, int n, voice_t *v)
     }
 
     hop += n;
-    if (gate && hop >= (int)(HOP_S * FS)) {
+    if (pitch_on && gate && hop >= (int)(HOP_S * FS)) {
         hop = 0;
         float w[WIN];
         int start = (rp - WIN) & (RING - 1);

@@ -6,8 +6,8 @@ The canonical copy of this table lives in `firmware/main/pins.h`. If you changeÂ
 
 | GPIO | Name | Goes to | Notes |
 | -: | - | - | - |
-| 1 | JOY\_X | Joystick VRx | ADC1 |
-| 2 | JOY\_Y | Joystick VRy | ADC1 |
+| 1 | JOY\_Y | Joystick VRy | ADC1 |
+| 2 | JOY\_X | Joystick VRx | ADC1 |
 | 3 | JOY\_SW | Joystick SW | active low, internal pull-up |
 | 4 | ENC\_A | Encoder CLK / A |  |
 | 5 | ENC\_B | Encoder DT / B |  |

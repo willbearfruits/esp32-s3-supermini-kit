@@ -23,6 +23,7 @@ typedef struct {
     float tone;      // -1..1 master tilt
     float rev_mix;   // reverb return
     float dly_fb;    // 0..0.9
+    bool  oversample; // 2x oversampled clip (default), else a plain soft clip: much cheaper
 } mix_params_t;
 
 void mix_init(void);

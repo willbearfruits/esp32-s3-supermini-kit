@@ -3,8 +3,8 @@
 #pragma once
 
 // --- Joystick (analog, must stay on ADC1 = GPIO1..GPIO10, ADC2 dies with WiFi)
-#define PIN_JOY_X     1
-#define PIN_JOY_Y     2
+#define PIN_JOY_X     2
+#define PIN_JOY_Y     1
 #define PIN_JOY_SW    3   // active low, internal pull-up
 
 // --- Rotary encoder

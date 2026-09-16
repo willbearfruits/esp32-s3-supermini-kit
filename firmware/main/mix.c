@@ -90,7 +90,7 @@ static inline float fx_run(ch_state_t *st, int fx, float amt, float x)
 static float master_lp_l, master_lp_r;
 
 static float duck;
-static mix_params_t P = { .pump = 0.4f, .drive = 1.3f, .tone = 0, .rev_mix = 0.6f, .dly_fb = 0.45f };
+static mix_params_t P = { .pump = 0.4f, .drive = 1.3f, .tone = 0, .rev_mix = 0.6f, .dly_fb = 0.45f, .oversample = true };
 #define NT 11
 static float hb[NT];
 static float up_z[2][16], dn_z[2][16];
@@ -241,8 +241,8 @@ void IRAM_ATTR mix_process(float *const tracks[], const mix_ch_t ch[], int nch, 
             onepole(&master_lp_l, l, tone_c); l = master_lp_l * (1 - tone) + (l - master_lp_l) * (1 + tone);
             onepole(&master_lp_r, r, tone_c); r = master_lp_r * (1 - tone) + (r - master_lp_r) * (1 + tone);
         }
-        l = oversampled_clip(0, l * P.drive) / P.drive * 0.9f;
-        r = oversampled_clip(1, r * P.drive) / P.drive * 0.9f;
+        if (P.oversample) { l = oversampled_clip(0, l * P.drive) / P.drive * 0.9f; r = oversampled_clip(1, r * P.drive) / P.drive * 0.9f; }
+        else { l = softclip(l * P.drive) / P.drive * 0.9f; r = softclip(r * P.drive) / P.drive * 0.9f; }
         L[i] = l; R[i] = r;
         float a = fabsf(l) > fabsf(r) ? fabsf(l) : fabsf(r);
         if (a > pk) pk = a;

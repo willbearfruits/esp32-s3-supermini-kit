@@ -7,6 +7,7 @@ typedef struct {
     int   enc;                 // detents turned since last poll, signed
     bool  tap, hold, longp;    // push released < 0.5 s; held 0.6 s; held 3 s (once)
     bool  pressed; int held_ms;
+    bool  from_boot;           // the current/last press started on BOOT rather than the encoder switch
     bool  joy_click;
     bool  flick_l, flick_r, flick_u, flick_d;
     float jx, jy;              // -1..1 with dead zone, 0 when no joystick

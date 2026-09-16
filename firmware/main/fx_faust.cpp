@@ -11,12 +11,7 @@ extern "C" {
 #include "esp_heap_caps.h"
 #include "esp_log.h"
 }
-#include <new>
-#include <cstring>
 #include <cstdio>
-#include "faust/dsp/dsp.h"
-#include "faust/gui/UI.h"
-#include "faust/gui/meta.h"
 #include "faust/zita.h"
 #include "faust/shift.h"
 #include "faust/wah.h"
@@ -26,35 +21,15 @@ extern "C" {
 #include "faust/synth.h"
 
 static const char *TAG = "faust";
-#define MAXP 24
+#include "faust_glue.h"
 #define MAXN 256                 // largest block the audio engine hands us
-#define PSRAM_FROM 40000         // objects bigger than this go to PSRAM
 
 struct setting { const char *label; float value; };
 struct preset { const char *name; setting set[8]; };
 
-// Collects every slider/button/nentry as (label, zone).
-struct param_ui : public UI {
-    const char *label[MAXP]; FAUSTFLOAT *zone[MAXP]; int n = 0;
-    void add(const char *l, FAUSTFLOAT *z) { if (n < MAXP) { label[n] = l; zone[n] = z; n++; } }
-    void openTabBox(const char *) override {}
-    void openHorizontalBox(const char *) override {}
-    void openVerticalBox(const char *) override {}
-    void closeBox() override {}
-    void addButton(const char *l, FAUSTFLOAT *z) override { add(l, z); }
-    void addCheckButton(const char *l, FAUSTFLOAT *z) override { add(l, z); }
-    void addHorizontalSlider(const char *l, FAUSTFLOAT *z, FAUSTFLOAT, FAUSTFLOAT, FAUSTFLOAT, FAUSTFLOAT) override { add(l, z); }
-    void addVerticalSlider(const char *l, FAUSTFLOAT *z, FAUSTFLOAT, FAUSTFLOAT, FAUSTFLOAT, FAUSTFLOAT) override { add(l, z); }
-    void addNumEntry(const char *l, FAUSTFLOAT *z, FAUSTFLOAT, FAUSTFLOAT, FAUSTFLOAT, FAUSTFLOAT) override { add(l, z); }
-    void addHorizontalBargraph(const char *, FAUSTFLOAT *, FAUSTFLOAT, FAUSTFLOAT) override {}
-    void addVerticalBargraph(const char *, FAUSTFLOAT *, FAUSTFLOAT, FAUSTFLOAT) override {}
-    void addSoundfile(const char *, const char *, Soundfile **) override {}
-    FAUSTFLOAT *find(const char *l) { for (int i = 0; i < n; i++) if (!strcmp(label[i], l)) return zone[i]; return NULL; }
-};
-
 struct instance {
     dsp *d = NULL; int nin = 0, nout = 0; size_t bytes = 0; bool psram = false;
-    param_ui ui; FAUSTFLOAT *freq = NULL, *gate = NULL;
+    faust_param_ui ui; FAUSTFLOAT *freq = NULL, *gate = NULL;
     const preset *pre; int npre, pcur = 0;
     const char *name;
 };
@@ -75,10 +50,7 @@ template <class T> static void make(instance *h)
 {
     if (!h->d) {
         h->bytes = sizeof(T);
-        h->psram = h->bytes > PSRAM_FROM;
-        void *mem = h->psram ? heap_caps_malloc(sizeof(T), MALLOC_CAP_SPIRAM) : malloc(sizeof(T));
-        if (!mem) { mem = heap_caps_malloc(sizeof(T), MALLOC_CAP_SPIRAM); h->psram = true; }
-        h->d = new (mem) T();
+        h->d = faust_make<T>(&h->psram);
         h->d->init(CONFIG_KIT_SAMPLE_RATE);
         h->d->buildUserInterface(&h->ui);
         h->nin = h->d->getNumInputs(); h->nout = h->d->getNumOutputs();

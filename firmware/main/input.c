@@ -23,10 +23,15 @@ static bool was_pressed, long_fired;
 static int64_t t_press;
 static bool flick_armed[4] = { true, true, true, true };
 
-static int adc_read(adc_channel_t ch)
+// ADC1 channel n is GPIO n+1 on the S3
+#define CH_X ((adc_channel_t)(PIN_JOY_X - 1))
+#define CH_Y ((adc_channel_t)(PIN_JOY_Y - 1))
+
+static int adc_read(adc_channel_t ch)   // average of 4 conversions: the wiper reads are noisy
 {
-    int raw = 0;
-    return adc_oneshot_read(adc, ch, &raw) == ESP_OK ? raw : -1;
+    int sum = 0;
+    for (int i = 0; i < 4; i++) { int raw = 0; if (adc_oneshot_read(adc, ch, &raw) != ESP_OK) return -1; sum += raw; }
+    return sum / 4;
 }
 
 void input_init(void)
@@ -58,24 +63,23 @@ void input_init(void)
     adc_oneshot_unit_init_cfg_t ac = { .unit_id = ADC_UNIT_1 };
     ESP_ERROR_CHECK(adc_oneshot_new_unit(&ac, &adc));
     adc_oneshot_chan_cfg_t cc = { .atten = ADC_ATTEN_DB_12, .bitwidth = ADC_BITWIDTH_DEFAULT };
-    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc, ADC_CHANNEL_0, &cc));   // GPIO1
-    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc, ADC_CHANNEL_1, &cc));   // GPIO2
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc, CH_X, &cc));
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc, CH_Y, &cc));
 
-    // joystick present? both axes must rest near mid-scale and sit very
-    // still: a pot wiper is low impedance and reads within a few counts,
-    // a floating pin wanders by tens of counts
+    // joystick present? both axes must rest somewhere near mid-scale and
+    // stay roughly put: a floating pin wanders over most of the range
     int minx = 9999, maxx = 0, miny = 9999, maxy = 0; long sx = 0, sy = 0;
-    for (int i = 0; i < 64; i++) {
+    for (int i = 0; i < 128; i++) {
         if (i % 8 == 7) vTaskDelay(1);
-        int x = adc_read(ADC_CHANNEL_0), y = adc_read(ADC_CHANNEL_1);
+        int x = adc_read(CH_X), y = adc_read(CH_Y);
         if (x < minx) minx = x;
         if (x > maxx) maxx = x;
         if (y < miny) miny = y;
         if (y > maxy) maxy = y;
         sx += x; sy += y;
     }
-    jx0 = sx / 64.0f; jy0 = sy / 64.0f;
-    has_joy = jx0 > 1200 && jx0 < 2900 && jy0 > 1200 && jy0 < 2900 && maxx - minx < 24 && maxy - miny < 24;
+    jx0 = sx / 128.0f; jy0 = sy / 128.0f;
+    has_joy = jx0 > 900 && jx0 < 3300 && jy0 > 900 && jy0 < 3300 && maxx - minx < 700 && maxy - miny < 700;
     ESP_LOGI(TAG, "joystick %s (centre %d,%d spread %d,%d)", has_joy ? "found" : "not found",
              (int)jx0, (int)jy0, maxx - minx, maxy - miny);
 }
@@ -110,7 +114,9 @@ void input_poll(input_ev_t *ev)
 
     bool pressed = gpio_get_level(PIN_BOOT) == 0 || gpio_get_level(PIN_ENC_SW) == 0;
     int64_t now = esp_timer_get_time();
-    if (pressed && !was_pressed) { t_press = now; long_fired = false; }
+    static bool from_boot;
+    if (pressed && !was_pressed) { t_press = now; long_fired = false; from_boot = gpio_get_level(PIN_BOOT) == 0; }
+    ev->from_boot = from_boot;
     int held = pressed ? (int)((now - t_press) / 1000) : 0;
     if (pressed && !long_fired && held >= 3000) { ev->longp = true; long_fired = true; }
     if (!pressed && was_pressed && !long_fired) {
@@ -128,12 +134,12 @@ void input_poll(input_ev_t *ev)
 
     ev->has_joy = has_joy;
     if (has_joy) {
-        float x = axis(adc_read(ADC_CHANNEL_0), jx0), y = axis(adc_read(ADC_CHANNEL_1), jy0);
+        float x = axis(adc_read(CH_X), jx0), y = axis(adc_read(CH_Y), jy0);
         // a stick nobody touches returns to centre; a floating pin does not
         static int off_centre;
         if (fabsf(x) > 0.5f || fabsf(y) > 0.5f) { if (++off_centre > 800) { has_joy = false; ESP_LOGW(TAG, "joystick pinned off centre for 8 s, ignoring it"); } }
         else off_centre = 0;
-        jx_f += 0.4f * (x - jx_f); jy_f += 0.4f * (y - jy_f);
+        jx_f += 0.3f * (x - jx_f); jy_f += 0.3f * (y - jy_f);
         ev->jx = jx_f; ev->jy = jy_f;
         flick(jx_f, &ev->flick_l, &ev->flick_r, 0);
         flick(jy_f, &ev->flick_d, &ev->flick_u, 1);
