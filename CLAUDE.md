@@ -98,9 +98,13 @@ the fx table per application. The build uses `-O3
   voice in `faust/jam_voice.dsp` through `faust_voice.cpp`, pad is
   `synth.c`, drums `kit.c`, master `mix.c` (oversampling off). Sampler
   records from the mic channel into PSRAM and can be scratched with the
-  joystick in perform mode. Three pages: PATTERN, MIX, SETUP; BOOT hold
-  switches page, tap switches channel, encoder edits, joystick click toggles
-  perform. Mic is only in the mix while its channel is selected. Calls
+  joystick in perform mode. Three pages: PATTERN, MIX, SETUP. No BOOT (it
+  is inside the case): encoder hold = next page, push+turn = channel, tap =
+  toggle/mute/record, 3 s = clear channel, SETUP has CLEAR ALL; joystick
+  flicks navigate, click toggles perform. Drum styles are loaded into the
+  grid from SETUP, nothing plays that is not on the grid. The joystick is
+  mounted a quarter turn off and rotated in `input.c`. Mic is only in the
+  mix while its channel is selected. Calls
   `voice_set_pitch(false)`: no YIN, saves ~25% CPU. No save yet.
 - Faust showcase (`CONFIG_KIT_APP_FAUST`): same UI as the test app, fx list
   from `fx_faust.cpp`. Programs live in `firmware/faust/*.dsp`; run

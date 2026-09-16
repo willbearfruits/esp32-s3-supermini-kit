@@ -1,17 +1,18 @@
-// JAM UI task: three pages.
-//   PATTERN  step grid of the selected channel. Encoder turn moves the cursor
-//            along the steps, joystick flicks move it (left/right step,
-//            up/down row), encoder tap toggles the cell, encoder hold clears
-//            the channel, 3 s clears everything. On MIC, encoder tap starts
-//            and stops sample recording. Joystick click toggles PERFORM: the
-//            stick then plays the channel (scratch on SAMPLE, bend and filter
-//            on the synths, effect sends on PAD and MIC).
+// JAM UI task: three pages, driven by the encoder and the joystick only
+// (BOOT is inside the case).
+//   PATTERN  step grid of the selected channel. Encoder turn moves the
+//            cursor along the steps, joystick flicks move it (left/right
+//            step, up/down row), encoder tap toggles the cell. On MIC the
+//            tap starts and stops sample recording. Joystick click toggles
+//            PERFORM: the stick then plays the channel (scratch on SAMPLE,
+//            bend and filter on the synths, effect sends on PAD and MIC).
 //   MIX      one row per channel: vol, pan, rev, dly. Flick left/right picks
-//            the field, encoder turn adjusts it, encoder tap mutes.
-//   SETUP    bpm, root, scale, drum template, swing, kit, presets. Flick
-//            up/down or BOOT tap picks the field, encoder turn adjusts it.
-// BOOT tap: next channel (PATTERN, MIX) or next field (SETUP). BOOT hold:
-// next page.
+//            the field, up/down the channel, encoder turn adjusts, tap mutes.
+//   SETUP    bpm, root, scale, drum pattern, swing, kit, presets, clear all.
+//            Flick up/down picks the field, encoder turn adjusts, tap fires
+//            CLEAR ALL.
+// Everywhere: encoder pushed + turned = next/previous channel (SETUP: field),
+// encoder held 0.5 s = next page, held 3 s = clear the channel.
 #include "app.h"
 #include "jam.h"
 #include "input.h"
@@ -61,7 +62,6 @@ static void draw_pattern(const jam_ui_t *u)
             int s = col0 + cidx, x = 8 + cidx * 7;
             uint8_t g = u->grid[r][s];
             if (g & 1) oled_rect(x + 1, y + 1, 5, h - 2, true);
-            else if (g & 0x80) oled_rect(x + 3, y + h / 2, 1, 1, true);
             else if (cidx % 4 == 0) oled_pixel(x + 3, y + h / 2, true);
         }
     }
@@ -111,7 +111,7 @@ void app_jam_run(i2c_master_bus_handle_t bus)
 {
     (void)bus;
     input_init();
-    ESP_LOGI(TAG, "JAM: BOOT tap = channel, BOOT hold = page, encoder = cursor/value, tap = toggle, joystick click = perform");
+    ESP_LOGI(TAG, "JAM: encoder = cursor/value, pushed+turn = channel, tap = toggle, hold = page, 3 s = clear channel; joystick click = perform");
     bool turned = false; int64_t last_log = 0;
     jam_ui_t u; jam_get_ui(&u);
     while (1) {
@@ -119,10 +119,14 @@ void app_jam_run(i2c_master_bus_handle_t bus)
         int rows = u.rows;
         // --- navigation & values ---
         if (in.enc) {
-            if (page == PG_PATTERN) { if (ch != CH_MIC) cur_step = (cur_step + in.enc + JAM_STEPS) % JAM_STEPS; }
+            turned = turned || in.pressed;
+            if (in.pressed) {
+                if (page == PG_SETUP) setup_field = (setup_field + in.enc + P_N) % P_N;
+                else { ch = (ch + in.enc + CH_N) % CH_N; jam_cmd(CMD_SELECT, ch, 0, 0); cur_row = 0; }
+            }
+            else if (page == PG_PATTERN) { if (ch != CH_MIC) cur_step = (cur_step + in.enc + JAM_STEPS) % JAM_STEPS; }
             else if (page == PG_MIX) jam_cmd(CMD_MIX, ch, mix_field, in.enc);
-            else jam_cmd(CMD_PARAM, 0, setup_field, in.enc);
-            if (in.pressed) turned = true;
+            else if (setup_field < P_N - 1) jam_cmd(CMD_PARAM, 0, setup_field, in.enc);
         }
         if (in.has_joy && !perform) {
             if (in.flick_r) { if (page == PG_PATTERN) cur_step = (cur_step + 1) % JAM_STEPS; else if (page == PG_MIX) mix_field = (mix_field + 1) % MX_N; }
@@ -132,20 +136,15 @@ void app_jam_run(i2c_master_bus_handle_t bus)
         }
         if (in.has_joy && in.joy_click && page == PG_PATTERN) { perform = !perform; jam_cmd(CMD_PERFORM, ch, perform, 0); ESP_LOGI(TAG, "perform %s", perform ? "on" : "off"); }
         if (perform) jam_expr(in.jx, in.jy);
-        // --- buttons ---
-        if (in.tap || in.hold || in.longp) {
-            if (turned) turned = false;
-            else if (in.from_boot) {
-                if (in.tap) {
-                    if (page == PG_SETUP) setup_field = (setup_field + 1) % P_N;
-                    else { ch = (ch + 1) % CH_N; jam_cmd(CMD_SELECT, ch, 0, 0); cur_row = 0; }
-                } else if (in.hold) { page = (page + 1) % PG_N; ESP_LOGI(TAG, "page %d", page); }
-            } else if (in.longp) { jam_cmd(CMD_CLEAR_ALL, 0, 0, 0); ESP_LOGI(TAG, "clear all"); }
-            else if (page == PG_PATTERN) {
-                if (ch == CH_MIC) { if (in.tap) jam_cmd(CMD_REC, ch, !u.rec, 0); }
-                else if (in.tap) jam_cmd(CMD_TOGGLE, ch, cur_step, cur_row);
-                else if (in.hold) { jam_cmd(CMD_CLEAR_CH, ch, 0, 0); ESP_LOGI(TAG, "clear %s", jam_ch_name(ch)); }
-            } else if (page == PG_MIX) { if (in.tap) jam_cmd(CMD_MUTE, ch, 0, 0); }
+        // --- encoder button ---
+        if (in.longp) { if (!turned) { jam_cmd(CMD_CLEAR_CH, ch, 0, 0); ESP_LOGI(TAG, "clear %s", jam_ch_name(ch)); } }
+        else if (in.hold) { if (!turned) { page = (page + 1) % PG_N; ESP_LOGI(TAG, "page %s", page == PG_PATTERN ? "PATTERN" : page == PG_MIX ? "MIX" : "SETUP"); } }
+        else if (in.tap && !turned) {
+            if (page == PG_PATTERN) {
+                if (ch == CH_MIC) jam_cmd(CMD_REC, ch, !u.rec, 0);
+                else jam_cmd(CMD_TOGGLE, ch, cur_step, cur_row);
+            } else if (page == PG_MIX) jam_cmd(CMD_MUTE, ch, 0, 0);
+            else if (setup_field == P_N - 1) { jam_cmd(CMD_CLEAR_ALL, 0, 0, 0); ESP_LOGI(TAG, "clear all"); }
         }
         if (!in.pressed) turned = false;
         if (rows && cur_row >= rows) cur_row = rows - 1;

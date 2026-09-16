@@ -32,7 +32,8 @@ static const scale_def_t SCALES[] = {
 #define SCALE_N (int)(sizeof SCALES / sizeof SCALES[0])
 static const char *NOTE_NAMES[12] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
 
-// ---- drum templates: 16 steps, x accent, o medium, - soft, . rest ----------
+// ---- drum patterns: 16 steps, x accent, o medium, - soft, . rest. Picking one
+// in SETUP copies it into both bars of the editable grid; OFF clears it. ----
 typedef struct { const char *name, *kick, *snare, *hat; } style_t;
 static const style_t STYLES[] = {
     { "OFF",    "................", "................", "................" },
@@ -69,7 +70,7 @@ static float *lay[TRACKS];
 float jam_prof[8];
 
 const char *jam_ch_name(int ch) { static const char *N[CH_N] = { "DRUMS", "BASS", "LEAD", "PAD", "SAMPLE", "MIC" }; return ch >= 0 && ch < CH_N ? N[ch] : "?"; }
-const char *jam_param_name(int p) { static const char *N[P_N] = { "BPM", "ROOT", "SCALE", "DRUMS", "SWING", "KIT", "BASS", "LEAD", "PAD" }; return p >= 0 && p < P_N ? N[p] : "?"; }
+const char *jam_param_name(int p) { static const char *N[P_N] = { "BPM", "ROOT", "SCALE", "DRUMS", "SWING", "KIT", "BASS", "LEAD", "PAD", "CLEAR" }; return p >= 0 && p < P_N ? N[p] : "?"; }
 static int clampi(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v; }
 static float mtof(float n) { return 440.0f * powf(2.0f, (n - 69) / 12.0f); }
 static const scale_def_t *sc(void) { return &SCALES[S.scale]; }
@@ -149,14 +150,17 @@ static void pad_chord(int row, bool on)
 // ---- sequencer -------------------------------------------------------------
 static float human(float vel) { S.drums.seed = S.drums.seed * 1664525u + 1013904223u; return vel * (0.94f + 0.12f * ((S.drums.seed >> 8) & 1023) / 1023.0f); }
 
+static void load_style(int idx)
+{
+    const style_t *st = &STYLES[idx]; const char *tpl[DRUM_N] = { st->kick, st->snare, st->hat };
+    for (int s = 0; s < STEPS; s++) for (int t = 0; t < DRUM_N; t++) S.drum[s][t] = tvel(tpl[t][s % 16]);
+}
+
 static void fire_step(int s)
 {
-    const style_t *st = &STYLES[S.style];
-    int b = s % 16;
     if (!S.mute[CH_DRUMS]) {
-        const char *tpl[DRUM_N] = { st->kick, st->snare, st->hat };
         for (int t = 0; t < DRUM_N; t++) {
-            int v = tvel(tpl[t][b]); if (S.drum[s][t] > v) v = S.drum[s][t];
+            int v = S.drum[s][t];
             if (v) { drums_trigger(&S.drums, t, human(v / 127.0f)); if (t == DRUM_KICK) mix_kick(); }
         }
     }
@@ -228,7 +232,7 @@ static void set_param(int p, int d)
     case P_BPM:   set_tempo(clampi(S.bpm + d, 40, 220)); break;
     case P_ROOT:  S.root = (S.root + d + 12) % 12; break;
     case P_SCALE: S.scale = (S.scale + d + SCALE_N) % SCALE_N; break;
-    case P_STYLE: S.style = (S.style + d + STYLE_N) % STYLE_N; break;
+    case P_STYLE: S.style = (S.style + d + STYLE_N) % STYLE_N; load_style(S.style); break;
     case P_SWING: S.swing = clampi(S.swing + d * 5, 0, 100); break;
     case P_KIT:   S.kit = (S.kit + d + KIT_SYNTH_N) % KIT_SYNTH_N; drums_set_kit(&S.drums, S.kit); break;
     case P_BASS:  S.bpre = (S.bpre + d + FV_PRESETS) % FV_PRESETS; fvoice_preset(S.bv, FV_BASS, S.bpre); break;
@@ -276,7 +280,7 @@ static void init(void)
     S.ppre = 1; synth_init(&S.pad, synth_preset(SK_KEYS, S.ppre), 3);
     memset(S.note, -1, sizeof S.note);
     S.bass_off = S.lead_off = S.pad_off = -1;
-    S.style = 1; S.scale = 0; S.root = 0;
+    S.style = 0; S.scale = 0; S.root = 0;
     static const float MIXDEF[CH_N][MX_N] = {
         { 0.9f, 0.0f, 0.1f, 0.0f }, { 0.85f, 0.0f, 0.0f, 0.0f }, { 0.75f, 0.15f, 0.3f, 0.25f },
         { 0.6f, -0.15f, 0.5f, 0.0f }, { 0.85f, 0.1f, 0.25f, 0.15f }, { 0.8f, 0.0f, 0.3f, 0.2f } };
@@ -341,11 +345,10 @@ void jam_get_ui(jam_ui_t *u)
     u->rows = rows_of(S.sel);
     const scale_def_t *s = sc();
     if (S.sel == CH_DRUMS) {
-        const style_t *st = &STYLES[S.style]; const char *tpl[DRUM_N] = { st->kick, st->snare, st->hat };
         static const char *L[DRUM_N] = { "K", "S", "H" };
         for (int t = 0; t < DRUM_N; t++) {
             snprintf(u->row_label[DRUM_N - 1 - t], 3, "%s", L[t]);
-            for (int st_ = 0; st_ < STEPS; st_++) u->grid[DRUM_N - 1 - t][st_] = S.drum[st_][t] ? 1 : (tvel(tpl[t][st_ % 16]) ? 0x80 : 0);
+            for (int st_ = 0; st_ < STEPS; st_++) u->grid[DRUM_N - 1 - t][st_] = S.drum[st_][t] ? 1 : 0;
         }
     } else if (S.sel != CH_MIC) {
         int l = lane(S.sel);
@@ -366,6 +369,7 @@ void jam_get_ui(jam_ui_t *u)
     snprintf(u->param[P_BASS], 12, "%s", fvoice_preset_name(FV_BASS, S.bpre));
     snprintf(u->param[P_LEAD], 12, "%s", fvoice_preset_name(FV_LEAD, S.lpre));
     snprintf(u->param[P_PAD], 12, "%s", synth_preset_name(SK_KEYS, S.ppre));
+    snprintf(u->param[P_CLEAR], 12, "ALL (tap)");
     snprintf(u->scale, sizeof u->scale, "%s%s", NOTE_NAMES[S.root], s->n == 5 ? "p" : S.scale == 1 ? "m" : "");
     u->mic_db = S.mic_db; u->sample_s = S.smp_len / FS; u->sample_ok = S.smp_len > 0;
     u->gr = mix_gain_reduction();

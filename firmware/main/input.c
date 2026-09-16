@@ -134,7 +134,9 @@ void input_poll(input_ev_t *ev)
 
     ev->has_joy = has_joy;
     if (has_joy) {
-        float x = axis(adc_read(CH_X), jx0), y = axis(adc_read(CH_Y), jy0);
+        float ax = axis(adc_read(CH_X), jx0), ay = axis(adc_read(CH_Y), jy0);
+        // the module sits a quarter turn clockwise in the case: rotate so up is up
+        float x = ay, y = -ax;
         // a stick nobody touches returns to centre; a floating pin does not
         static int off_centre;
         if (fabsf(x) > 0.5f || fabsf(y) > 0.5f) { if (++off_centre > 800) { has_joy = false; ESP_LOGW(TAG, "joystick pinned off centre for 8 s, ignoring it"); } }
