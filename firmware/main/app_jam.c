@@ -113,7 +113,7 @@ static void draw_pattern(const jam_ui_t *u)
     char line[64];
     int bar = cur_step / 16;
     const char *pf = !u->perform ? "" : u->sel == CH_SAMPLE ? (u->perform == PF_A ? " SCR" : " ROLL") : u->sel == CH_DRUMS ? " ROLL" : " PERF";
-    snprintf(line, sizeof line, "%-6s b%d %3d %s%s%s", jam_ch_name(u->sel), bar + 1, u->bpm, u->scale, pf, u->rec ? " REC" : "");
+    snprintf(line, sizeof line, "%c %-6s b%d %3d %s%s%s", 'A' + u->pat, jam_ch_name(u->sel), bar + 1, u->bpm, u->scale, pf, u->rec ? " REC" : "");
     oled_text(0, 0, line);
     if (u->sel == CH_MIC) {
         int bar_px = (int)((u->mic_db + 60) / 60 * 120); if (bar_px < 0) bar_px = 0; if (bar_px > 120) bar_px = 120;
@@ -207,9 +207,11 @@ void app_jam_run(i2c_master_bus_handle_t bus)
             }
             else if (page == PG_PATTERN) { if (ch != CH_MIC) cur_step = (cur_step + in.enc + JAM_STEPS) % JAM_STEPS; }
             else if (page == PG_MIX) jam_cmd(CMD_MIX, ch, mix_field, in.enc);
-            else if (setup_field < P_N - 1) jam_cmd(CMD_PARAM, 0, setup_field, in.enc);
+            else if (setup_field != P_CLEAR && setup_field != P_COPY) jam_cmd(CMD_PARAM, 0, setup_field, in.enc);
         }
-        if (in.has_joy && !perform) {
+        if (in.has_joy && in.pressed && (in.flick_u || in.flick_d)) {   // encoder held + flick up/down: pattern bank
+            jam_cmd(CMD_PATTERN, 0, in.flick_u ? 1 : -1, 0); turned = true;
+        } else if (in.has_joy && !perform) {
             if (in.flick_r) { if (page == PG_PATTERN) cur_step = (cur_step + 1) % JAM_STEPS; else if (page == PG_MIX) mix_field = (mix_field + 1) % MX_N; }
             if (in.flick_l) { if (page == PG_PATTERN) cur_step = (cur_step + JAM_STEPS - 1) % JAM_STEPS; else if (page == PG_MIX) mix_field = (mix_field + MX_N - 1) % MX_N; }
             if (in.flick_u) { if (page == PG_PATTERN && rows) cur_row = (cur_row + 1) % rows; else if (page == PG_SETUP) setup_field = (setup_field + P_N - 1) % P_N; else if (page == PG_MIX) { ch = (ch + CH_N - 1) % CH_N; jam_cmd(CMD_SELECT, ch, 0, 0); } }
@@ -225,7 +227,8 @@ void app_jam_run(i2c_master_bus_handle_t bus)
                 if (ch == CH_MIC) jam_cmd(CMD_REC, ch, !u.rec, 0);
                 else jam_cmd(CMD_TOGGLE, ch, cur_step, cur_row);
             } else if (page == PG_MIX) jam_cmd(CMD_MUTE, ch, 0, 0);
-            else if (setup_field == P_N - 1) { jam_cmd(CMD_CLEAR_ALL, 0, 0, 0); ESP_LOGI(TAG, "clear all"); }
+            else if (setup_field == P_CLEAR) { jam_cmd(CMD_CLEAR_ALL, 0, 0, 0); ESP_LOGI(TAG, "clear all"); }
+            else if (setup_field == P_COPY) { jam_cmd(CMD_COPY, 0, 0, 0); ESP_LOGI(TAG, "copy pattern"); }
         }
         if (!in.pressed) turned = false;
         if (rows && cur_row >= rows) cur_row = rows - 1;
