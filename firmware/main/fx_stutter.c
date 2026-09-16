@@ -1,6 +1,7 @@
-// Rhythmic stutter (beat repeat): while you make sound, the last eighth note
-// is re-triggered on a 1/8, 1/16, 1/32 pattern locked to the kit tempo. A
-// quiet metronome tick marks the beats so you can play in time.
+// Beat repeat: the last eighth note is captured on the grid and re-triggered
+// on a per-step division pattern locked to the kit tempo. Presets pick the
+// pattern, the mix, whether it only runs while you make sound, and whether a
+// quiet metronome tick marks the beats.
 #include "fx.h"
 #include "dsp.h"
 #include <stdio.h>
@@ -14,8 +15,17 @@ static int   pos, beat_len, step_len, bar_len;
 static int   replen, active;
 static int   click_left;
 static float click_ph;
-static const int pattern_div[8] = { 1, 2, 2, 4, 1, 2, 4, 8 };   // per eighth step
-static int  step_cur;
+static int   step_cur;
+
+typedef struct { const char *name; int div[8]; float wet, dry; bool gated, click; } preset_t;
+static const preset_t pre[] = {
+    { "1/8 pattern", { 1, 2, 2, 4, 1, 2, 4, 8 }, 0.9f, 0.25f, true,  true  },
+    { "1/16 all",    { 2, 2, 2, 2, 2, 2, 2, 2 }, 0.9f, 0.25f, true,  true  },
+    { "glitch ramp", { 8, 4, 2, 1, 8, 4, 2, 1 }, 0.9f, 0.10f, true,  true  },
+    { "always on",   { 1, 1, 4, 4, 1, 1, 8, 8 }, 0.9f, 0.25f, false, false },
+};
+#define NPRE (int)(sizeof pre / sizeof pre[0])
+static int pcur;
 
 static void init(void)
 {
@@ -31,6 +41,7 @@ static void init(void)
 
 static void process(const float *in, float *out, int n, const voice_t *v)
 {
+    const preset_t *p = &pre[pcur];
     for (int i = 0; i < n; i++) {
         rec[rp] = in[i];
         rp = (rp + 1) & (RING - 1);
@@ -42,8 +53,8 @@ static void process(const float *in, float *out, int n, const voice_t *v)
             // capture the previous eighth
             int start = (rp - step_len) & (RING - 1);
             for (int k = 0; k < step_len; k++) slice[k] = rec[(start + k) & (RING - 1)];
-            replen = step_len / pattern_div[step & 7];
-            active = v->gate;
+            replen = step_len / p->div[step & 7];
+            active = p->gated ? v->gate : 1;
         }
         float y;
         if (active) {
@@ -52,27 +63,36 @@ static void process(const float *in, float *out, int n, const voice_t *v)
             const int F = 48;
             if (k < F) fade = (float)k / F;
             else if (replen - k < F) fade = (float)(replen - k) / F;
-            y = slice[k] * fade * 0.9f + in[i] * 0.25f;
+            y = slice[k] * fade * p->wet + in[i] * p->dry;
         } else {
             y = in[i];
         }
         // metronome tick on every beat, accented on the downbeat
-        if (pos % beat_len == 0) { click_left = (int)(0.004f * FS); click_ph = 0; }
-        if (click_left > 0) {
-            float amp = (pos < beat_len) ? 0.12f : 0.07f;
-            y += amp * sinf(click_ph);
-            click_ph += TWO_PI * 1500.0f / FS;
-            click_left--;
+        if (p->click) {
+            if (pos % beat_len == 0) { click_left = (int)(0.004f * FS); click_ph = 0; }
+            if (click_left > 0) {
+                float amp = (pos < beat_len) ? 0.12f : 0.07f;
+                y += amp * fast_sin01(click_ph);
+                click_ph += 1500.0f / FS; if (click_ph >= 1) click_ph -= 1;
+                click_left--;
+            }
         }
         out[i] = y;
         if (++pos >= bar_len) pos = 0;
     }
 }
 
+static const char *preset(int idx)
+{
+    if (idx < 0 || idx >= NPRE) return NULL;
+    pcur = idx;
+    return pre[pcur].name;
+}
+
 static void status(char *buf, size_t len)
 {
     int step = pos / step_len;
-    snprintf(buf, len, "%d bpm  beat %d  1/%d", CONFIG_KIT_BPM, step / 2 + 1, 8 * pattern_div[step & 7]);
+    snprintf(buf, len, "%s %d bpm 1/%d", pre[pcur].name, CONFIG_KIT_BPM, 8 * pre[pcur].div[step & 7]);
 }
 
-const fx_t fx_stutter = { "STUTTER", init, process, status, NULL, NULL };
+const fx_t fx_stutter = { "BEAT REPEAT", init, process, status, NULL, NULL, false, preset };

@@ -41,6 +41,9 @@ static volatile float cpu_load;      // fraction of the block budget used, smoot
 static volatile float mic_gain = 8;
 static volatile int32_t raw_l, raw_r;            // last frame's raw I2S words, for the mic test
 static volatile int raw_nz_l, raw_nz_r;          // non-zero words in the last block
+static volatile int raw_live_l, raw_live_r;      // words that are neither all-0 nor all-1 in the top 24 bits
+static volatile int mic_slot;                    // 0 left, 1 right: the INMP441's L/R pin decides, found at runtime
+static int slot_vote;
 static volatile int raw_min, raw_max, raw_dc;    // of (word >> 8) in the last block
 static biquad_t hp_in;
 
@@ -116,16 +119,25 @@ static void IRAM_ATTR audio_task(void *arg)
         int frames = got / (2 * sizeof(int32_t));
         uint32_t c0 = esp_cpu_get_cycle_count();
 
-        // INMP441: left slot, top 24 bits are data, low 8 are junk
-        { int nl = 0, nr = 0, mn = 0x7FFFFFFF, mx = -0x7FFFFFFF; long long acc = 0;
+        // INMP441: top 24 bits are data, low 8 are junk. It drives one slot
+        // (L/R pin low = left) and tri-states the other, which then reads as
+        // all ones or all zeros; whichever slot is alive is the mic.
+        { int nl = 0, nr = 0, ll = 0, lr = 0, mn = 0x7FFFFFFF, mx = -0x7FFFFFFF; long long acc = 0;
           for (int f = 0; f < frames; f++) {
+              int wl = raw[2 * f] >> 8, wr = raw[2 * f + 1] >> 8;
               nl += raw[2 * f] != 0; nr += raw[2 * f + 1] != 0;
-              int v = raw[2 * f] >> 8; if (v < mn) mn = v; if (v > mx) mx = v; acc += v;
+              ll += wl != 0 && wl != -1; lr += wr != 0 && wr != -1;
+              int v = raw[2 * f + mic_slot] >> 8; if (v < mn) mn = v; if (v > mx) mx = v; acc += v;
           }
-          raw_nz_l = nl; raw_nz_r = nr; raw_l = raw[2 * (frames - 1)]; raw_r = raw[2 * (frames - 1) + 1];
-          raw_min = mn; raw_max = mx; raw_dc = (int)(acc / frames); }
+          raw_nz_l = nl; raw_nz_r = nr; raw_live_l = ll; raw_live_r = lr;
+          raw_l = raw[2 * (frames - 1)]; raw_r = raw[2 * (frames - 1) + 1];
+          raw_min = mn; raw_max = mx; raw_dc = (int)(acc / frames);
+          int want = (ll < frames / 4 && lr > frames / 2) ? 1 : (lr < frames / 4 && ll > frames / 2) ? 0 : mic_slot;
+          if (want != mic_slot) { if (++slot_vote > 50) { mic_slot = want; slot_vote = 0;
+              ESP_LOGW(TAG, "mic data is in the %s slot (L/R pin %s), using it", want ? "RIGHT" : "LEFT", want ? "high" : "low"); } }
+          else slot_vote = 0; }
         for (int f = 0; f < frames; f++) {
-            float x = (float)(raw[2 * f] >> 8) * (mic_gain / 8388608.0f);
+            float x = (float)(raw[2 * f + mic_slot] >> 8) * (mic_gain / 8388608.0f);
             in[f] = biquad_run(&hp_in, x);
         }
 
@@ -202,6 +214,8 @@ float audio_cpu_load(void) { return cpu_load; }
 void  audio_set_mic_gain(float g) { mic_gain = g; }
 float audio_get_mic_gain(void) { return mic_gain; }
 void  audio_get_raw(int32_t *l, int32_t *r, int *nz_l, int *nz_r) { *l = raw_l; *r = raw_r; *nz_l = raw_nz_l; *nz_r = raw_nz_r; }
+void  audio_get_raw_live(int *live_l, int *live_r) { *live_l = raw_live_l; *live_r = raw_live_r; }
+int   audio_mic_slot(void) { return mic_slot; }
 void  audio_get_raw_stats(int *mn, int *mx, int *dc) { *mn = raw_min; *mx = raw_max; *dc = raw_dc; }
 
 void audio_midi_note_on(int note, int vel)

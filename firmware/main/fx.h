@@ -13,10 +13,13 @@ typedef struct {
     void (*note_on)(int note, int vel);                                  // optional, MIDI in
     void (*note_off)(int note);                                          // optional, MIDI in
     bool stereo;                                                         // process() writes interleaved L/R (2n floats)
+    const char *(*preset)(int idx);                                      // optional: select preset idx, return its name, NULL past the end
 } fx_t;
 
 extern const fx_t fx_vocoder, fx_autotune, fx_guitar_lead, fx_guitar_chords,
                   fx_delay, fx_reverb, fx_stutter, fx_test, fx_sine;
+extern const fx_t fx_faust_zita, fx_faust_shift, fx_faust_wah, fx_faust_amp,
+                  fx_faust_flanger, fx_faust_dyn, fx_faust_synth;   // fx_faust.cpp, Faust showcase
 
 extern const fx_t *const fx_list[];
 extern const int fx_count;

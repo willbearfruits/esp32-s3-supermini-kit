@@ -53,7 +53,7 @@ Trade-off: both DACs always play the same audio. If you ever want different aud
 | SD | GPIO 10 |
 | SCK | GPIO 7 |
 | WS | GPIO 8 |
-| L/R | GND (data lands in the left slot) |
+| L/R | GND (data lands in the left slot; the firmware also accepts it tied to VDD, right slot) |
 
 
 ### PCM5102A DAC (purple board, line / headphone out)

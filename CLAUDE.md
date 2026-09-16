@@ -22,7 +22,7 @@ idf.py set-target esp32s3      # once, or after deleting build/
 idf.py build
 idf.py flash monitor           # board enumerates over native USB (USB Serial/JTAG)
 idf.py menuconfig              # tunables under "Kit firmware"
-tools/app.sh looper|instrument|test   # switch the application in sdkconfig and rebuild
+tools/app.sh looper|instrument|test|faust   # switch the application in sdkconfig and rebuild
 ```
 
 `sdkconfig` is generated and gitignored; edit `sdkconfig.defaults` for anything
@@ -35,7 +35,7 @@ reading the serial log described in README.md. Build logs on failure are under
 Single ESP-IDF app in `firmware/main/`, project name `kit_instrument`, three
 applications selected by the Kconfig choice `KIT_APP` (menuconfig -> Kit
 firmware -> Application, or `tools/app.sh`): the voice looper (default), the
-older eight-mode voice instrument, and a hardware test. All share the engine
+older eight-mode voice instrument, a hardware test and a Faust showcase. All share the engine
 below; `main.c` does the common bring-up (pin self-test, I2C bus recovery and
 scan, OLED, `audio_start`) and then calls `app_<name>_run`. `fx_list.c` picks
 the fx table per application. The build uses `-O3
@@ -47,8 +47,10 @@ the fx table per application. The build uses `-O3
   amp shutdown 11, I2C 12/13. BOOT (GPIO0) doubles as the encoder push until
   one is wired; a reset while it is held lands in download mode.
 - `audio.c` owns I2S port 0 full duplex at 32 kHz, 64-frame blocks, 3 DMA
-  descriptors (~6 ms round trip), 32-bit slots. The mic lands in the left
-  slot with junk in the low 8 bits (masked). Input is float, high-passed at
+  descriptors (~6 ms round trip), 32-bit slots. The mic's data is in the
+  left slot when its L/R pin is low and the right slot when high; the task
+  detects which slot is alive (`audio_mic_slot`) and uses it. Low 8 bits are
+  junk (masked). Input is float, high-passed at
   80 Hz, fed to `voice.c`, then to `fx_list[mode]->process()`. An fx with
   `stereo` set writes interleaved L/R. A cycle-counter CPU meter is exposed
   as `audio_cpu_load()`. Runs pinned to core 1.
@@ -79,13 +81,25 @@ the fx table per application. The build uses `-O3
   while it runs, hold to leave).
 - Instrument (`CONFIG_KIT_APP_INSTRUMENT`): `app_instrument.c` plus the
   `fx_*.c` modes; untested at 32 kHz.
-- Test (`CONFIG_KIT_APP_TEST`): `app_test.c` with `fx_sine.c` and `input.c`.
-  Mic straight to the DACs, OLED shows level, note, waveform and a one-line
+- Test (`CONFIG_KIT_APP_TEST`): `app_test.c` with `fx_sine.c`, `input.c` and
+  the instrument's delay/reverb/stutter. Mic through the chosen effect to the
+  DACs; OLED and serial log show level, note, waveform and a one-line
   diagnosis built from the raw I2S words (no data, wrong slot, stuck line,
   loose wire), plus reset reason and an RTC boot counter for the first seconds
-  so brownout loops are visible without serial. Encoder turn shows its page,
-  push toggles a 440 Hz sine with a -50..0 dB sweep. This is the app to flash
-  when bringing up a new board or debugging wiring.
+  so brownout loops are visible without serial. A 440 Hz tone plays for 4 s
+  after boot as a DAC check. BOOT/encoder tap = next effect, hold 0.5 s =
+  next preset (the optional `preset` hook in `fx_t`). This is the app to
+  flash when bringing up a new board or debugging wiring.
+- Faust showcase (`CONFIG_KIT_APP_FAUST`): same UI as the test app, fx list
+  from `fx_faust.cpp`. Programs live in `firmware/faust/*.dsp`; run
+  `tools/faustgen.sh` (needs `faust` on PATH) after editing one. It writes
+  `main/faust/<name>.h` (class `kfx_<name>`, committed so builds never need
+  Faust). `fx_faust.cpp` collects sliders by label, applies named presets,
+  writes `freq`/`gate` from the voice tracker when a program has them, and
+  places objects over 40 KB in PSRAM. Faust base headers are vendored under
+  `main/faust/`. Avoid table oscillators (`os.osc`, `os.oscsin`): each puts a
+  256 KB static table in internal RAM; use `sin(2*ma.PI*os.lf_sawpos(f))`.
+  Generate with `-ftz 1`, the mask variant does not compile here.
 - `selftest.c` runs at boot: I2S pin short test and mic line pull test.
 - `oled.c` is a minimal SSD1306 driver on `esp_lcd` with 5x7 and 2x text,
   circles, lines, bitmaps. Other I2C addresses: ToF 0x29, IMU 0x68.

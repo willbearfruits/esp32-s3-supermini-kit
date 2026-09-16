@@ -12,7 +12,9 @@ menu "Kit firmware"
         config KIT_APP_INSTRUMENT
             bool "Voice instrument (vocoder, autotune, guitar, delay, ...)"
         config KIT_APP_TEST
-            bool "Hardware test (sine sweep on the DACs)"
+            bool "Hardware test (mic through delay/reverb/beat repeat, BOOT: effect, hold: preset)"
+        config KIT_APP_FAUST
+            bool "Faust showcase (mic through Faust effects, BOOT: effect, hold: preset)"
     endchoice
 
     config KIT_LOOP_MAX_SEC

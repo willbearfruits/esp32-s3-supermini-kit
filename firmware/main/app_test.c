@@ -1,9 +1,11 @@
-// Hardware test, mic and screen. The mic goes straight to the DACs; the
-// screen shows its level, the detected note, a waveform and a one-line
-// diagnosis from the raw I2S words. The first seconds after boot show why
-// the chip reset and how many times, so a brownout loop is visible without
-// a serial cable. Turning the encoder shows its page for two seconds; a
-// push toggles the 440 Hz sweep tone.
+// Hardware test, mic and DAC, no screen or controls needed. The mic goes
+// through the chosen effect (mic only, delay, reverb, beat repeat) to the
+// DACs; the serial log (and the screen, if there is one) shows level, note,
+// a waveform and a one-line diagnosis from the raw I2S words. The first
+// seconds after boot show why the chip reset and how many times, so a
+// brownout loop is visible without a serial cable. BOOT (or the encoder
+// push): tap = next effect, hold half a second = next preset. Turning the
+// encoder shows its page for two seconds.
 #include "app.h"
 #include "audio.h"
 #include "oled.h"
@@ -11,6 +13,7 @@
 #include "voice.h"
 #include "input.h"
 #include "pins.h"
+#include "fx.h"
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
@@ -24,10 +27,32 @@
 #include "sdkconfig.h"
 
 static const char *TAG = "test";
+#define AUTO_TONE_S 4   // seconds of test tone after boot
 float fx_sine_db(void);
 void  fx_sine_set_tone(bool on);
 static bool tone;
 static int enc_count, enc_last_dir, enc_presses;
+static int fx_cur, preset_cur[16];
+static const char *preset_name = "";
+
+static void set_preset(int idx)
+{
+    const fx_t *fx = fx_list[fx_cur];
+    if (!fx->preset) { preset_name = ""; return; }
+    const char *nm = fx->preset(idx);
+    if (!nm) { idx = 0; nm = fx->preset(0); }
+    preset_cur[fx_cur] = idx; preset_name = nm ? nm : "";
+    tone = fx_cur == 0 && idx == 1;
+    ESP_LOGI(TAG, "%s preset %d: %s", fx->name, idx + 1, preset_name);
+}
+
+static void set_fx(int idx)
+{
+    fx_cur = idx % fx_count;
+    audio_set_mode(fx_cur);
+    ESP_LOGI(TAG, "effect %d/%d: %s  (tap: next effect, hold: next preset)", fx_cur + 1, fx_count, fx_list[fx_cur]->name);
+    set_preset(preset_cur[fx_cur]);
+}
 static RTC_NOINIT_ATTR uint32_t boot_count;
 
 static const char *reset_name(void)
@@ -46,12 +71,13 @@ static const char *reset_name(void)
     }
 }
 
-static const char *diagnose(int32_t l, int32_t r, int nzl, int nzr, int n)
+static const char *diagnose(int nzl, int nzr, int livel, int liver, int slot, int n)
 {
     if (nzl == 0 && nzr == 0) return "no data: SD->10? VDD? SCK->7 WS->8?";
-    if (nzl == 0 && nzr > 0) return "data in RIGHT slot: L/R to GND";
-    if ((uint32_t)l == 0xFFFFFFFF || (l >> 8) == 0x7FFFFF || (l >> 8) == -0x800000) return "line stuck: SD wire? mic power?";
-    if (nzl > 0 && nzl < n / 2) return "intermittent: loose wire";
+    if (livel == 0 && liver == 0) return "line stuck: SD wire? mic power?";
+    int live = slot ? liver : livel;
+    if (live < n / 2) return "intermittent: loose wire";
+    if (slot) return "mic OK, RIGHT slot (L/R pin high)";
     return "mic data OK";
 }
 
@@ -76,7 +102,7 @@ static void page_encoder(const input_ev_t *in)
     snprintf(line, sizeof line, "presses %d  %s", enc_presses, in->pressed ? "held" : "");
     oled_text(0, 30, line);
     if (enc_last_dir) oled_text2(52, 42, enc_last_dir > 0 ? ">>" : "<<");
-    oled_text(0, 57, "turn: count, push: tone");
+    oled_text(0, 57, "tap: effect  hold: preset");
 }
 
 static void page_mic(const voice_t *v, const char *diag, bool show_boot)
@@ -99,10 +125,12 @@ static void page_mic(const voice_t *v, const char *diag, bool show_boot)
     if (v->voiced) snprintf(line, sizeof line, "%s %.0f Hz", note_name(v->note, nm), v->freq);
     else snprintf(line, sizeof line, "%s%s", v->gate ? "voice" : "quiet", tone ? "  tone on" : "");
     oled_text(0, 27, line);
+    snprintf(line, sizeof line, "%s: %s", fx_list[fx_cur]->name, preset_name);
+    oled_text(0, 49, line);
     oled_text(0, 57, diag);
     int8_t wave[AUDIO_WAVE_N];
     audio_get_wave(wave);
-    for (int x = 1; x < OLED_W; x++) oled_pixel(x, 45 - wave[x] * 9 / 128, true);
+    for (int x = 1; x < OLED_W; x++) oled_pixel(x, 41 - wave[x] * 5 / 128, true);   // rows 36..46
 }
 
 static void i2c_rescan(i2c_master_bus_handle_t bus)
@@ -132,11 +160,19 @@ void app_test_run(i2c_master_bus_handle_t bus)
     int64_t t_start = esp_timer_get_time(), last_log = 0, last_scan = 0, enc_t = 0, stuck_since = 0;
     int restarts = 0;
     char diag[64] = "";
+    // DAC check without touching anything: the 440 Hz tone rises from -50 dB
+    // for the first seconds after boot, then the mic passthrough is on its own.
+    bool auto_tone = true;
+    preset_cur[0] = 1;                 // start on the tone preset of the mic mode
+    set_fx(0);
+    ESP_LOGI(TAG, "DAC check: 440 Hz tone rising for %d s, then mic only", AUTO_TONE_S);
     while (1) {
         int64_t now = esp_timer_get_time();
         input_ev_t in;
         input_poll(&in);
-        if (in.tap) { tone = !tone; fx_sine_set_tone(tone); enc_presses++; ESP_LOGI(TAG, "push: tone %s", tone ? "on" : "off"); }
+        if (auto_tone && now - t_start > AUTO_TONE_S * 1000000LL) { auto_tone = false; if (fx_cur == 0) set_preset(0); }
+        if (in.tap)  { auto_tone = false; enc_presses++; set_fx(fx_cur + 1); }
+        if (in.hold) { auto_tone = false; enc_presses++; set_preset(preset_cur[fx_cur] + 1); }
         if (in.enc) {
             enc_count += in.enc; enc_last_dir = in.enc; enc_t = now;
             ESP_LOGI(TAG, "encoder %+d -> %d  (A=%d B=%d SW=%d)", in.enc, enc_count, gpio_get_level(PIN_ENC_A), gpio_get_level(PIN_ENC_B), gpio_get_level(PIN_ENC_SW));
@@ -145,11 +181,13 @@ void app_test_run(i2c_master_bus_handle_t bus)
 
         voice_t v; char nm[5];
         audio_get_voice(&v);
-        int32_t rl, rr; int nzl, nzr;
+        int32_t rl, rr; int nzl, nzr, livel, liver;
         audio_get_raw(&rl, &rr, &nzl, &nzr);
-        snprintf(diag, sizeof diag, "%s", diagnose(rl, rr, nzl, nzr, 64));
+        audio_get_raw_live(&livel, &liver);
+        int slot = audio_mic_slot();
+        snprintf(diag, sizeof diag, "%s", diagnose(nzl, nzr, livel, liver, slot, 64));
 
-        bool stuck = (uint32_t)rl == 0xFFFFFFFFu || (rl == 0 && nzl == 0);
+        bool stuck = livel == 0 && liver == 0;
         if (!stuck) stuck_since = 0;
         else if (!stuck_since) stuck_since = now;
         else if (now - stuck_since > 1500000) {
@@ -166,9 +204,10 @@ void app_test_run(i2c_master_bus_handle_t bus)
             char line[40];
             snprintf(line, sizeof line, "|%-30.*s|", bar > 0 ? bar : 0, "##############################");
             audio_get_raw_stats(&mn, &mx, &dc);
-            ESP_LOGI(TAG, "mic %6.1f dBFS %s %s %-3s | raw L 0x%08lX R 0x%08lX nz %d/%d | 24-bit min %d max %d dc %d | %s | cpu %2.0f%%%s",
+            char st[40]; fx_list[fx_cur]->status(st, sizeof st);
+            ESP_LOGI(TAG, "mic %6.1f dBFS %s %s %-3s | raw L 0x%08lX R 0x%08lX live %d/%d slot %c | 24-bit min %d max %d dc %d | %s | %s: %s | cpu %2.0f%%",
                      v.db, line, v.gate ? "VOICE" : "quiet", v.voiced ? note_name(v.note, nm) : "---",
-                     (unsigned long)rl, (unsigned long)rr, nzl, nzr, mn, mx, dc, diag, audio_cpu_load() * 100, tone ? " tone" : "");
+                     (unsigned long)rl, (unsigned long)rr, livel, liver, slot ? 'R' : 'L', mn, mx, dc, diag, fx_list[fx_cur]->name, st, audio_cpu_load() * 100);
         }
         if (oled_present()) {
             oled_clear();
