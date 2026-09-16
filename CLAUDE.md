@@ -111,8 +111,13 @@ the fx table per application. The build uses `-O3
   click cycles perform modes (DRUMS roll; SAMPLE scratch, roll), SETUP
   CHAOS % mutates steps (roll, drop, swap, other slice, reverse, octave),
   MIX page has an insert fx column (mix.c FX_*) and amount. Four pattern
-  banks A-D (encoder held + joystick flick up/down, or SETUP PATTERN/COPY),
-  switching is instant and keeps the playhead.
+  banks A-H (encoder held + joystick flick up/down, or SETUP PATTERN/COPY),
+  switching is instant and keeps the playhead. SONG page: 16 slots of
+  bank x repeats, tap plays from the cursor slot. UI look: inverted title
+  bar on every page, step-light strip under the grid, channel-strip mixer
+  with faders. The pages can be rendered on the host with the harness in
+  the scratchpad pattern (stub oled + `#include "app_jam.c"`), useful for
+  checking layout without the board.
 - Faust showcase (`CONFIG_KIT_APP_FAUST`): same UI as the test app, fx list
   from `fx_faust.cpp`. Programs live in `firmware/faust/*.dsp`; run
   `tools/faustgen.sh` (needs `faust` on PATH) after editing one. It writes

@@ -56,6 +56,7 @@ static struct {
     float step_len, pos; int loop_len, next_step;
     int   sel, perform, smode; bool mute[CH_N]; float mix[CH_N][MX_N];
     int   pat;                                  // current bank
+    int8_t song[JAM_SONG]; uint8_t reps[JAM_SONG]; bool song_on; int song_pos, song_rep;
     uint8_t drum[JAM_PATTERNS][STEPS][DRUM_N];  // velocity, 0 = none
     int8_t  note[JAM_PATTERNS][4][STEPS];       // bass, lead, pad, sample: row index or -1
     int   pad_off, bass_off, lead_off;          // steps at which a pending note ends, -1 none
@@ -302,6 +303,8 @@ static void apply_state(const jam_state_t *st)
     memcpy(S.note[0], st->note, sizeof S.note[0]);
     if (st->version >= 4) { for (int b = 1; b < JAM_PATTERNS; b++) { memcpy(S.drum[b], st->drum_b[b - 1], sizeof S.drum[b]); memcpy(S.note[b], st->note_b[b - 1], sizeof S.note[b]); } S.pat = clampi(st->pat, 0, JAM_PATTERNS - 1); }
     else { for (int b = 1; b < JAM_PATTERNS; b++) { memset(S.drum[b], 0, sizeof S.drum[b]); memset(S.note[b], -1, sizeof S.note[b]); } S.pat = 0; }
+    if (st->version >= 5) { memcpy(S.song, st->song, sizeof S.song); memcpy(S.reps, st->reps, sizeof S.reps); } else { memset(S.song, -1, sizeof S.song); memset(S.reps, 1, sizeof S.reps); }
+    S.song_on = false;
     S.smp_len = clampi(st->smp_len, 0, SAMPLE_MAX);
     S.smode = st->version >= 2 ? (st->smode != 0) : 0;
     S.chaos = st->version >= 3 ? clampi(st->chaos, 0, 100) : 0;
@@ -331,7 +334,13 @@ static void do_cmd(const cmd_t *c)
     case CMD_REC:       if (c->a) { if (!S.rec) { S.rec = true; S.rec_pos = 0; } } else if (S.rec) rec_stop(); break;
     case CMD_PERFORM:   S.perform = c->a; S.scratch_rate = 0; S.roll_acc = 0; S.roll_n = 0; break;
     case CMD_LOAD:      apply_state(S.pending); S.pending = NULL; break;
-    case CMD_PATTERN:   S.pat = (S.pat + c->a + JAM_PATTERNS) % JAM_PATTERNS; break;
+    case CMD_PATTERN:   S.pat = (S.pat + c->a + JAM_PATTERNS) % JAM_PATTERNS; S.song_on = false; break;
+    case CMD_SONG_BANK: { int i = clampi(c->ch, 0, JAM_SONG - 1); int v = S.song[i] + c->a; S.song[i] = (int8_t)(v < -1 ? JAM_PATTERNS - 1 : v >= JAM_PATTERNS ? -1 : v); if (S.reps[i] == 0) S.reps[i] = 1; break; }
+    case CMD_SONG_REPS: { int i = clampi(c->ch, 0, JAM_SONG - 1); S.reps[i] = (uint8_t)clampi(S.reps[i] + c->a, 1, 16); break; }
+    case CMD_SONG_PLAY:
+        S.song_on = c->a && S.song[0] >= 0;
+        if (S.song_on) { S.song_pos = clampi(c->b, 0, JAM_SONG - 1); if (S.song[S.song_pos] < 0) S.song_pos = 0; S.song_rep = 0; S.pat = S.song[S.song_pos]; }
+        break;
     case CMD_COPY: {
         int to = (S.pat + 1) % JAM_PATTERNS;
         memcpy(S.drum[to], S.drum[S.pat], sizeof S.drum[to]);
@@ -356,7 +365,7 @@ static void init(void)
     S.lv = fvoice_new(FV_LEAD, 0);
     S.ppre = 1; synth_init(&S.pad, synth_preset(SK_KEYS, S.ppre), 3);
     memset(S.note, -1, sizeof S.note);
-    S.pat = 0;
+    S.pat = 0; memset(S.song, -1, sizeof S.song); memset(S.reps, 1, sizeof S.reps);
     S.bass_off = S.lead_off = S.pad_off = -1; S.last_smp = -1;
     S.style = 0; S.scale = 0; S.root = 0;
     static const float MIXDEF[CH_N][MX_N] = {
@@ -380,7 +389,16 @@ static void IRAM_ATTR process(const float *in, float *out, int n, const voice_t 
     float end = S.pos + n;
     while (S.next_step < STEPS && step_time(S.next_step) < end) { fire_step(S.next_step); S.next_step++; }
     S.pos = end;
-    if (S.pos >= S.loop_len) { S.pos -= S.loop_len; S.next_step = 0; while (step_time(S.next_step) < S.pos) { fire_step(S.next_step); S.next_step++; } }
+    if (S.pos >= S.loop_len) {
+        S.pos -= S.loop_len; S.next_step = 0;
+        if (S.song_on && ++S.song_rep >= S.reps[S.song_pos]) {
+            S.song_rep = 0;
+            int nxt = S.song_pos + 1;
+            if (nxt >= JAM_SONG || S.song[nxt] < 0) nxt = 0;
+            S.song_pos = nxt; S.pat = S.song[nxt] >= 0 ? S.song[nxt] : S.pat;
+        }
+        while (step_time(S.next_step) < S.pos) { fire_step(S.next_step); S.next_step++; }
+    }
 
     // perform mode: joystick on the selected channel
     bool roll = S.perform && ((S.sel == CH_DRUMS && S.perform == PF_A) || (S.sel == CH_SAMPLE && S.perform == PF_B));
@@ -449,7 +467,8 @@ const fx_t fx_jam = { "JAM", init, process, status, NULL, NULL, true, NULL };
 void jam_get_state(jam_state_t *st)
 {
     memset(st, 0, sizeof *st);
-    st->magic = JAM_MAGIC; st->version = 4; st->smode = S.smode; st->chaos = S.chaos;
+    st->magic = JAM_MAGIC; st->version = 5; st->smode = S.smode; st->chaos = S.chaos;
+    memcpy(st->song, S.song, sizeof st->song); memcpy(st->reps, S.reps, sizeof st->reps);
     st->bpm = S.bpm; st->style = S.style; st->swing = S.swing; st->root = S.root; st->scale = S.scale;
     st->kit = S.kit; st->bpre = S.bpre; st->lpre = S.lpre; st->ppre = S.ppre;
     for (int i = 0; i < CH_N; i++) st->mute[i] = S.mute[i];
@@ -469,6 +488,7 @@ void jam_get_ui(jam_ui_t *u)
 {
     memset(u, 0, sizeof *u);
     u->step = (int)(S.pos / S.step_len) % STEPS; u->bpm = S.bpm; u->sel = S.sel; u->perform = S.perform; u->rec = S.rec; u->pat = S.pat;
+    memcpy(u->song, S.song, sizeof u->song); memcpy(u->reps, S.reps, sizeof u->reps); u->song_on = S.song_on; u->song_pos = S.song_pos; u->song_rep = S.song_rep;
     u->rows = rows_of(S.sel);
     const scale_def_t *s = sc();
     if (S.sel == CH_DRUMS) {

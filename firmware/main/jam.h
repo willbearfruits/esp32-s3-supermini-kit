@@ -11,7 +11,9 @@
 
 enum { CH_DRUMS, CH_BASS, CH_LEAD, CH_PAD, CH_SAMPLE, CH_MIC, CH_N };
 enum { CMD_SELECT, CMD_TOGGLE, CMD_CLEAR_CH, CMD_CLEAR_ALL, CMD_MUTE, CMD_MIX, CMD_PARAM, CMD_REC, CMD_PERFORM, CMD_LOAD, CMD_PATTERN, CMD_COPY };
-#define JAM_PATTERNS 4   // banks A..D; CMD_PATTERN a = delta; CMD_COPY copies the current bank to the next and switches
+#define JAM_PATTERNS 8   // banks A..H; CMD_PATTERN a = delta; CMD_COPY copies the current bank to the next and switches
+#define JAM_SONG 16      // arrangement slots: bank index or -1 = end, with a repeat count each
+enum { CMD_SONG_BANK = 100, CMD_SONG_REPS, CMD_SONG_PLAY };   // (slot, delta), (slot, delta), (on, start slot)
 enum { MX_VOL, MX_PAN, MX_REV, MX_DLY, MX_FX, MX_AMT, MX_N };   // MX_FX: insert effect index (mix.h FX_*), MX_AMT its amount
 enum { P_PAT, P_COPY, P_BPM, P_ROOT, P_SCALE, P_STYLE, P_SWING, P_CHAOS, P_KIT, P_BASS, P_LEAD, P_PAD, P_SMODE, P_CLEAR, P_N };   // P_COPY, P_CLEAR: tap fires   // P_CLEAR: tap fires CLEAR ALL
 enum { PF_OFF, PF_A, PF_B };            // perform modes: DRUMS roll; SAMPLE scratch, roll; synths bend/filter; pad, mic sends
@@ -20,6 +22,7 @@ enum { PF_OFF, PF_A, PF_B };            // perform modes: DRUMS roll; SAMPLE scr
 
 typedef struct {
     int  step, bpm, sel, perform, pat; bool rec;   // perform: PF_*
+    int8_t song[JAM_SONG]; uint8_t reps[JAM_SONG]; bool song_on; int song_pos, song_rep;
     int  rows;                                  // grid rows of the selected channel
     uint8_t grid[JAM_ROWS][JAM_STEPS];          // 1 = note/hit, 2 = reversed slice
     bool root_row[JAM_ROWS];                    // rows that are the scale root (for the display)
@@ -43,7 +46,8 @@ typedef struct {
     int32_t  smode;                             // 0 pitch, 1 slice (version 2)
     int32_t  chaos;                             // version 3; mix[] gained fx and amt
     int32_t  pat;                               // version 4: banks
-    uint8_t  drum_b[JAM_PATTERNS - 1][JAM_STEPS][3]; int8_t note_b[JAM_PATTERNS - 1][4][JAM_STEPS];   // banks B..D
+    uint8_t  drum_b[JAM_PATTERNS - 1][JAM_STEPS][3]; int8_t note_b[JAM_PATTERNS - 1][4][JAM_STEPS];   // banks B..H (version 5: 8 banks)
+    int8_t   song[JAM_SONG]; uint8_t reps[JAM_SONG];   // version 5
 } jam_state_t;
 void     jam_get_state(jam_state_t *st);
 void     jam_set_state(const jam_state_t *st);
