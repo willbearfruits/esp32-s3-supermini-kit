@@ -7,7 +7,7 @@
 // Optimized for:
 //   - 0.8 mm nozzle (3 solid perimeters, 2.4mm walls)
 //   - M3 brass heat-set inserts (Ø4.4mm holes in top shell bosses)
-//   - Accurate PCM5102A purple DAC board (31.8 x 23.7mm)
+//   - PCM5102A purple DAC board (dac_len x dac_wid in parts.scad, default 32 x 17 mm)
 //   - Round INMP441 microphone on top layer next to OLED (no overlap)
 //
 // Usage:

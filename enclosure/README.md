@@ -22,7 +22,7 @@ A custom, ergonomic, 3D-printable handheld enclosure designed specifically for t
 | # | Part | Role & Specification | Enclosure Integration |
 |---|---|---|---|
 | **1** | **ESP32-S3 SuperMini** | ESP32-S3FH4R2, 4MB Flash / 2MB PSRAM, USB-C | Lower-center lid cradle (`X = 41.0 to 59.0 mm`); USB-C port cutout on bottom edge with cable shroud relief. |
-| **2** | **PCM5102A I2S DAC** | **Accurate 31.8 × 23.7 mm** purple board with 3.5mm jack | Lower-right lid cradle (`X = 73.4 to 97.1 mm`); 3.5mm headphone/line-out jack **exits through the right side wall** (zero overlap with screws or other components). |
+| **2** | **PCM5102A I2S DAC** | **32 × 17 mm** purple board, 3.5mm jack on a short end, offset to one side. Size, jack edge, jack offset and which wall it exits are in the Customizer group *PCM5102A DAC board* in `enclosure.scad`. | Lid cradle along the right wall (`X = 68.5 to 85.5 mm`, `Y = 2.9 to 34.9 mm`), jack **exits through the front wall** beside the USB-C port. |
 | **3** | **Analog Joystick** | KY-023-style module with fitted pins and thumb cap | Lower-left quadrant (`X = 22.5, Y = 32.5 mm`); 26.5 mm diameter dome aperture; 4 M2 internal screw bosses with **>3.7 mm clearance to ESP32 cradle** and **>5.2 mm to ESP32 PCB** (zero overlap). |
 | **4** | **Rotary Encoder** | Bare EC11 with push switch and vertical shaft | Lower-right quadrant (`X = 70.0, Y = 32.5 mm`); 7.5 mm through-hole for M7 threaded bushing, anti-rotation locator notch, recessed dial bezel. |
 | **5** | **I2S Microphone** | **Round 14.5 mm 6-pin board** (INMP441) | **Mounted on top layer next to the OLED display** (`X = 78.0, Y = 65.0 mm`); acoustic 7-hole rosette grille with conical chamfers, internal gasket seat, and circular retention collar (zero overlap with OLED). |
@@ -66,7 +66,7 @@ Rather than self-tapping into weak plastic, the top shell contains thick, heavy-
    - Mount the **KY-023 Joystick** onto its four standoff bosses using four M2 screws.
 2. **Bottom Lid Assembly:**
    - Slide the **ESP32-S3 SuperMini** into its cradle (USB-C facing outward on the bottom edge).
-   - Slide the **PCM5102A DAC** into its cradle (3.5mm stereo jack facing outward through the right side wall cutout).
+   - Slide the **PCM5102A DAC** into its cradle (3.5mm stereo jack facing outward through the front wall cutout beside the USB-C).
    - Press the **MPU6050 IMU** into its internal retention cradle.
    - Wire connections according to [`docs/pinmap.md`](../docs/pinmap.md) and secure wires through the cable anchor loop.
 3. **Closing Case:**

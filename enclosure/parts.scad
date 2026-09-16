@@ -4,7 +4,7 @@
 // Based on the Minimal Audio Kit shortlist:
 // 1. ESP32-S3 SuperMini (ESP32-S3FH4R2, USB-C at bottom edge)
 // 2. PCM5102A I2S DAC (Purple board, 3.5mm jack facing SIDE wall)
-//    - Actual measured dimensions: 31.8 mm (along side) x 23.7 mm (width) x 6.4 mm
+//    - Sizes set in enclosure.scad (Customizer group "PCM5102A DAC board")
 // 3. KY-023 Analog Joystick module with fitted pins and cap
 // 4. EC11 Rotary Encoder (bare through-hole, vertical shaft with push button)
 // 5. INMP441 I2S Microphone (round 6-pin board, mounted under top layer with grill)
@@ -78,55 +78,64 @@ module esp32_s3_supermini(cut=false, clearance=0.4) {
 }
 
 // ------------------------------------------------------------------------------
-// 2. PCM5102A I2S DAC ("Purple board" with 3.5mm jack on the side)
+// 2. PCM5102A I2S DAC ("purple board", 3.5 mm jack on one edge)
 // ------------------------------------------------------------------------------
-// Standard module dimensions: 31.8 mm (along side) x 23.7 mm (width) x 6.4 mm
-// Audio jack is situated along the long edge, pointing outward to the side wall (+X)
-dac_pcb_l    = 31.8; // length along side wall (Y)
-dac_pcb_w    = 23.7; // width inward from wall (X)
-dac_pcb_t    = 1.6;
-dac_jack_w   = 6.5;  // jack body width (along Y)
-dac_jack_l   = 14.0; // jack body depth (along X)
-dac_jack_h   = 5.5;
-dac_jack_d   = 6.5;  // outer barrel diameter
-dac_jack_cy  = 12.0; // center of audio jack along the 31.8mm edge (Y)
+// The board sizes are set in enclosure.scad (Customizer group "PCM5102A DAC
+// board"); the values here are only fallbacks when parts.scad is used alone.
+// Local frame: the jack points to +X and pokes through the case wall, Y runs
+// along the wall, the PCB underside is at Z = 0.
+dac_pcb_long  = 32.0;   // longer PCB edge, outside to outside
+dac_pcb_short = 17.0;   // shorter PCB edge
+dac_jack_edge = "short"; // "long" or "short": which edge the jack sticks out of
+dac_jack_pos  = 3.2;    // jack centre along that edge from the -Y corner, 0 = centred
+dac_pcb_t     = 1.6;
+dac_jack_w    = 6.0;    // jack body width along the edge
+dac_jack_l    = 12.0;   // jack body length into the board
+dac_jack_h    = 5.5;    // jack body height above the PCB
+dac_jack_out  = 1.5;    // barrel nose past the PCB edge
+dac_plug_d    = 8.8;    // clearance hole in the wall for a 3.5 mm plug barrel
+
+// Derived: extent along the jack axis (X, into the case) and along the wall (Y)
+dac_len     = (dac_jack_edge == "long") ? dac_pcb_short : dac_pcb_long;
+dac_wid     = (dac_jack_edge == "long") ? dac_pcb_long  : dac_pcb_short;
+dac_jack_cy = (dac_jack_pos > 0) ? dac_jack_pos : dac_wid / 2;
+dac_h       = dac_pcb_t + dac_jack_h; // tallest point above the PCB underside
 
 module pcm5102a_dac(cut=false, clearance=0.45) {
     if (!cut) {
         // Purple PCB
         color([0.5, 0.1, 0.5])
-            cube([dac_pcb_w, dac_pcb_l, dac_pcb_t]);
-        
-        // 3.5mm headphone / line out jack body (facing +X towards side wall)
+            cube([dac_len, dac_wid, dac_pcb_t]);
+
+        // 3.5 mm jack body, flush with the +X edge
         color([0.15, 0.15, 0.15])
-            translate([dac_pcb_w - dac_jack_l + 2.5, dac_jack_cy - dac_jack_w/2, dac_pcb_t])
-                cube([dac_jack_l, dac_jack_w, dac_jack_h]);
-        
-        // Gold/brass jack barrel ring protruding out past PCB edge (+X)
+            translate([dac_len - min(dac_jack_l, dac_len), dac_jack_cy - dac_jack_w/2, dac_pcb_t])
+                cube([min(dac_jack_l, dac_len), dac_jack_w, dac_jack_h]);
+
+        // Barrel nose past the PCB edge
         color([0.85, 0.75, 0.3])
-            translate([dac_pcb_w + 1.0, dac_jack_cy, dac_pcb_t + dac_jack_h/2])
+            translate([dac_len, dac_jack_cy, dac_pcb_t + dac_jack_h/2])
                 rotate([0, 90, 0])
-                    cylinder(d=5.5, h=2.5);
-        
-        // PCM5102A IC and passives
+                    cylinder(d=5.5, h=dac_jack_out);
+
+        // PCM5102A IC, on the far half of the board from the jack
         color([0.1, 0.1, 0.1])
-            translate([6.0, dac_pcb_l/2 - 4, dac_pcb_t])
-                cube([8, 8, 1.5]);
-        
-        // Inward 6-pin I2S header (facing inward towards ESP32)
+            translate([1.5, dac_wid/2 - 3, dac_pcb_t])
+                cube([min(6, dac_len - 3), 6, 1.5]);
+
+        // 6-pin I2S header along the inward (-X) edge
         color([0.2, 0.2, 0.2])
-            translate([1.5, dac_pcb_l/2 - 3*2.54, dac_pcb_t])
+            translate([0.5, dac_wid/2 - 3*2.54, dac_pcb_t])
                 cube([2.5, 6*2.54, 2.5]);
     } else {
-        // Cutout for 3.5mm audio plug insertion through the side wall (+X)
-        plug_d = 8.8; // barrel clearance for standard headphone plugs
-        translate([dac_pcb_w - 5, dac_jack_cy, dac_pcb_t + dac_jack_h/2])
+        // Plug clearance through the side wall (+X)
+        translate([dac_len - 5, dac_jack_cy, dac_pcb_t + dac_jack_h/2])
             rotate([0, 90, 0])
-                cylinder(d=plug_d, h=25);
-        
+                cylinder(d=dac_plug_d, h=25);
+
         // PCB keepout
         translate([-clearance, -clearance, -clearance])
-            cube([dac_pcb_w + 2*clearance, dac_pcb_l + 2*clearance, dac_pcb_t + dac_jack_h + 2*clearance]);
+            cube([dac_len + 2*clearance, dac_wid + 2*clearance, dac_h + 2*clearance]);
     }
 }
 

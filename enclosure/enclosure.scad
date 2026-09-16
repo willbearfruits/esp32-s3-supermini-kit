@@ -3,7 +3,7 @@
 // ==============================================================================
 // Specifically tailored to the Minimal Audio Kit 6-Part Shortlist:
 //   1. ESP32-S3 SuperMini (MCU, USB-C centered at bottom edge)
-//   2. PCM5102A I2S DAC (Purple board along right side wall, 3.5mm jack on side)
+//   2. PCM5102A I2S DAC (Purple board along the right wall, jack out the front; Customizer group)
 //   3. KY-023 Analog Joystick (Thumb control on lower-left, ±30° tilt dome)
 //   4. EC11 Rotary Encoder (Parameter dial on lower-right)
 //   5. INMP441 I2S Microphone (Round board next to OLED screen with acoustic rosette grill)
@@ -63,6 +63,27 @@ screw_head_d     = (insert_type == "M3")   ? 7.2 :
 screw_head_h     = (insert_type == "M3")   ? 3.2 :
                    (insert_type == "M2.5") ? 2.6 : 2.2;
 
+/* [PCM5102A DAC board] */
+// Measure your board, outside edge to outside edge. The jack edge sits
+// against the chosen wall and the jack pokes out through it.
+dac_wall      = "front"; // [front, right, back] which case wall the jack pokes through
+dac_along     = 68.5;   // board position along that wall: X of its left edge for front/back, Y of its lower edge for right. Stay ~14 mm off the corners (screw bosses).
+dac_pcb_long  = 32.0;   // longer PCB edge (mm)
+dac_pcb_short = 17.0;   // shorter PCB edge (mm)
+dac_jack_edge = "short"; // [long, short] which edge the 3.5 mm jack sticks out of
+dac_jack_pos  = 3.2;    // jack centre along that edge from the board's -Y corner (photo estimate: flush with one long edge), 0 = centred
+dac_pcb_t     = 1.6;    // PCB thickness
+dac_jack_w    = 6.0;    // jack body width along the edge
+dac_jack_l    = 12.0;   // jack body length into the board
+dac_jack_h    = 5.5;    // jack body height above the PCB
+dac_jack_out  = 1.5;    // barrel nose past the PCB edge
+dac_plug_d    = 8.8;    // hole in the wall for a 3.5 mm plug barrel
+dac_gap       = 0.5;    // PCB jack edge to the inside face of the wall
+dac_lift      = 1.2;    // PCB underside above the lid floor (room for header pins)
+dac_fit       = 0.3;    // slot clearance each side of the PCB in the cradle
+dac_cradle_h  = 3.8;    // cradle wall height above the lid floor
+
+/* [Enclosure] */
 // Enclosure Overall Dimensions (mm)
 case_w           = 100.0;      // Outer width (X) - provides generous clearance for joystick, ESP32, & encoder
 case_l           = 98.0;       // Outer length (Y)
@@ -103,11 +124,40 @@ esp_x  = (case_w - esp_pcb_w) / 2; // centered at X = 50.0 (runs 41.0 to 59.0 mm
 esp_y  = wall_t + 1.0;
 esp_z  = floor_t + 1.2;
 
-// 6. PCM5102A I2S DAC (Placed along RIGHT SIDE wall, 3.5mm jack facing side wall)
-// Board length 31.8 mm sits along Y; width 23.7 mm sits along X
-dac_x  = case_w - wall_t - dac_pcb_w - 0.5; // X = 73.4 mm to 97.1 mm
-dac_y  = 28.0;                              // Y = 28.0 mm to 59.8 mm (ZERO overlap with corner holes!)
-dac_z  = floor_t + 1.2;
+// 6. PCM5102A I2S DAC: jack edge against the wall chosen by dac_wall. Sizes
+// come from the "PCM5102A DAC board" group above; parts.scad derives dac_len
+// (along the jack axis) and dac_wid (across it). The board, its cradle and
+// the wall cutouts are all drawn in the board's own frame (jack towards +X,
+// PCB underside at Z = 0) and dropped into the case by dac_place().
+dac_cradle_wall = 2 * nozzle_d;    // 1.6 mm cradle walls
+dac_z      = floor_t + dac_lift;
+dac_jack_z = dac_z + dac_pcb_t + dac_jack_h/2;  // jack axis height, shared by shell and lid cutouts
+dac_x = (dac_wall == "right") ? case_w - wall_t - dac_gap - dac_len : dac_along;
+dac_y = (dac_wall == "right") ? dac_along :
+        (dac_wall == "front") ? wall_t + dac_gap : case_l - wall_t - dac_gap - dac_len;
+dac_span_x = (dac_wall == "right") ? dac_len : dac_wid;   // footprint in the case
+dac_span_y = (dac_wall == "right") ? dac_wid : dac_len;
+
+module dac_place() {
+    if (dac_wall == "right")
+        translate([dac_x, dac_y, dac_z]) children();
+    else if (dac_wall == "front")
+        translate([dac_x, dac_y + dac_len, dac_z]) rotate([0, 0, -90]) children();
+    else
+        translate([dac_x + dac_wid, dac_y, dac_z]) rotate([0, 0, 90]) children();
+}
+
+// Plug hole through the wall plus a slot between case heights z0 and z1, so the
+// shell and the lid each get an arch that meets at the parting line.
+module dac_jack_cut(z0, z1) {
+    dac_place() {
+        translate([dac_len - 2, dac_jack_cy, dac_pcb_t + dac_jack_h/2])
+            rotate([0, 90, 0])
+                cylinder(d=dac_plug_d, h=dac_gap + wall_t + 4);
+        translate([dac_len - 2, dac_jack_cy - dac_plug_d/2, z0 - dac_z])
+            cube([dac_gap + wall_t + 4, dac_plug_d, max(z1 - z0, eps)]);
+    }
+}
 
 // 7. MPU6050 IMU (internal tray in lid on left side)
 imu_x  = 13.5;
@@ -147,8 +197,8 @@ module placed_components(cut=false) {
     translate([esp_x, esp_y, esp_z])
         esp32_s3_supermini(cut=cut);
     
-    // 6. PCM5102A DAC (along right side wall, 3.5mm jack facing side)
-    translate([dac_x, dac_y, dac_z])
+    // 6. PCM5102A DAC (jack through the wall chosen by dac_wall)
+    dac_place()
         pcm5102a_dac(cut=cut);
     
     // 7. MPU6050 IMU
@@ -261,12 +311,8 @@ module top_shell_geometry() {
         translate([esp_x + (esp_pcb_w - 13.0)/2, -eps, lid_h - eps])
             cube([13.0, wall_t + 2*eps, 4.5]);
         
-        // 3.5mm Audio Jack upper arch on RIGHT SIDE wall
-        translate([case_w - wall_t - eps, dac_y + dac_jack_cy, lid_h - eps])
-            rotate([0, 90, 0])
-                cylinder(d=8.8, h=wall_t + 2*eps);
-        translate([case_w - wall_t - eps, dac_y + dac_jack_cy - 4.4, lid_h - eps])
-            cube([wall_t + 2*eps, 8.8, 2.0]);
+        // 3.5mm Audio Jack upper arch (open down to the parting line)
+        dac_jack_cut(lid_h - eps, dac_jack_z);
         
         // 4. Debossed Labels & Aesthetics
         if (show_labels) {
@@ -288,11 +334,12 @@ module top_shell_geometry() {
                 linear_extrude(height=0.5)
                     text("ENCODER", size=2.4, font="Liberation Sans:style=Bold", halign="center", valign="center");
             
-            // "AUDIO" label on right side wall above jack
-            translate([case_w - wall_t + 0.4, dac_y + dac_jack_cy, lid_h + 5.5])
-                rotate([90, 0, 90])
-                    linear_extrude(height=0.6)
-                        text("AUDIO", size=2.2, font="Liberation Sans:style=Bold", halign="center", valign="center");
+            // "AUDIO" label debossed in the outer wall face above the jack
+            dac_place()
+                translate([dac_len + dac_gap + wall_t - 0.5, dac_jack_cy, lid_h + 5.5 - dac_z])
+                    rotate([90, 0, 90])
+                        linear_extrude(height=0.5 + eps)
+                            text("AUDIO", size=2.2, font="Liberation Sans:style=Bold", halign="center", valign="center");
         }
         
         // USB-C label on bottom edge
@@ -338,14 +385,17 @@ module bottom_lid_geometry() {
                         cube([esp_pcb_w, esp_pcb_l + 2*eps, 4.0]);
                 }
             
-            // --- PCM5102A DAC Retention Cradle (Along Right Side Wall) ---
-            // Sits at dac_x, dac_y along the side wall with ZERO overlap with corner holes
-            translate([dac_x - 1.6, dac_y - 1.6, floor_t - eps])
-                difference() {
-                    cube([dac_pcb_w + 2.0, dac_pcb_l + 3.2, 3.8 + eps]);
-                    translate([1.2, 1.6, 1.2])
-                        cube([dac_pcb_w + 2.0, dac_pcb_l, 4.0]);
-                }
+            // --- PCM5102A DAC Retention Cradle (jack end against its wall) ---
+            // U-shaped in the board's frame: walls on the inward end and both
+            // sides, open towards the wall so the jack nose reaches the hole.
+            // The PCB rests on a dac_lift ledge so header pins have room.
+            dac_place()
+                translate([-dac_cradle_wall, -dac_cradle_wall, -dac_lift - eps])
+                    difference() {
+                        cube([dac_len + dac_cradle_wall + dac_gap + 1.0, dac_wid + 2*dac_cradle_wall, dac_cradle_h + eps]);
+                        translate([dac_cradle_wall - dac_fit, dac_cradle_wall - dac_fit, dac_lift])
+                            cube([dac_len + 2*dac_fit + 5.0, dac_wid + 2*dac_fit, 10.0]);
+                    }
             
             // --- MPU6050 IMU Retention Cradle ---
             if (include_imu) {
@@ -383,12 +433,8 @@ module bottom_lid_geometry() {
         translate([esp_x + (esp_pcb_w - 13.0)/2, -eps, floor_t + 1.2])
             cube([13.0, wall_t + 2.0, lid_h + rim_h]);
         
-        // 3. 3.5mm Headphone Jack Lower Cutout on RIGHT SIDE wall
-        translate([case_w - wall_t - 2.0, dac_y + dac_jack_cy, floor_t + 1.2 + dac_jack_h/2])
-            rotate([0, 90, 0])
-                cylinder(d=8.8, h=wall_t + 4.0);
-        translate([case_w - wall_t - 2.0, dac_y + dac_jack_cy - 4.4, floor_t + 1.2 + dac_jack_h/2])
-            cube([wall_t + 4.0, 8.8, lid_h + rim_h]);
+        // 3. 3.5mm Headphone Jack Lower Cutout (open up through the parting line and rim)
+        dac_jack_cut(dac_jack_z, lid_h + rim_h + 1.0);
         
         // 4. Subtle recessed feet / rubber bumper pads on bottom
         for (sx = [-1, 1], sy = [-1, 1]) {
@@ -470,8 +516,7 @@ echo(str("--- ESP32-S3 Audio Kit Enclosure (Side Audio Jack / Thick Bosses) ---"
 echo(str("Nozzle: ", nozzle_d, "mm | Walls: ", wall_t, "mm | Rim: ", rim_t, "mm"));
 echo(str("Inserts: ", insert_type, " (Hole: ", insert_hole_d, "mm, Depth: ", insert_depth, "mm, Boss: ", boss_d, "mm)"));
 echo(str("Boss Solid Wall: ", (boss_d - insert_hole_d)/2, " mm (~4.5 solid perimeters!)"));
-echo(str("PCM5102A DAC: Along right side wall (3.5mm jack exits right side wall)"));
-echo(str("PCM5102A to Corner Hole clearance: > 14 mm (ZERO overlap!)"));
+echo(str("PCM5102A DAC: ", dac_pcb_long, " x ", dac_pcb_short, " mm, X ", dac_x, "..", dac_x + dac_span_x, " Y ", dac_y, "..", dac_y + dac_span_y, ", jack through the ", dac_wall, " wall"));
 echo(str("ESP32-S3: Centered on bottom edge (USB-C exits bottom wall)"));
 echo(str("Microphone: Round 14.5mm board NEXT TO OLED on top layer"));
 echo(str("Dimensions: ", case_w, " x ", case_l, " x ", case_h, " mm"));
