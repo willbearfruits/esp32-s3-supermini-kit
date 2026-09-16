@@ -180,8 +180,8 @@ static void draw_mix(const jam_ui_t *u)
     header("MIX", r);
     for (int i = 0; i < CH_N; i++) {
         int x = 1 + i * 21; bool sel = i == ch;
-        if (sel) { oled_rect(x, 11, 19, 9, true); oled_text_c(x + 4, 12, SH[i], false); }
-        else oled_text(x + 4, 12, SH[i]);
+        if (sel) { oled_rect(x, 11, 20, 9, true); oled_text_c(x + 1, 12, SH[i], false); }
+        else oled_text(x + 1, 12, SH[i]);
         if (u->mute[i]) oled_line(x + 2, 19, x + 16, 11, !sel);
         // fader
         int fx0 = x + 8, fy0 = 22, fh = 26;
@@ -194,16 +194,16 @@ static void draw_mix(const jam_ui_t *u)
         // sends (rev | dly) on one row, then fx letter and amount
         oled_rect(x + 2, 54, 1 + (int)(u->mix[i][MX_REV] * 7), 3, true);
         oled_rect(x + 11, 54, 1 + (int)(u->mix[i][MX_DLY] * 7), 3, true);
-        char c[2] = { FXC[((int)u->mix[i][MX_FX]) % FX_N], 0 }; oled_text(x + 2, 57, c);
-        oled_rect(x + 9, 59, 1 + (int)(u->mix[i][MX_AMT] * 9), 3, true);
+        char c[2] = { FXC[((int)u->mix[i][MX_FX]) % FX_N], 0 }; oled_text_c(x + 14, 12, c, !sel);
+        oled_rect(x + 2, 59, 1 + (int)(u->mix[i][MX_AMT] * 16), 3, true);
         if (sel) {   // marker under the selected field
             int mx = x + 2, my = 63, mw = 16;
             if (mix_field == MX_VOL) { mx = fx0 - 4; my = fy0 + fh + 1; mw = 11; }
             else if (mix_field == MX_PAN) { my = py + 3; }
             else if (mix_field == MX_REV) { mw = 8; my = 58; }
             else if (mix_field == MX_DLY) { mx = x + 11; mw = 8; my = 58; }
-            else if (mix_field == MX_FX) { mw = 6; }
-            else { mx = x + 9; mw = 10; }
+            else if (mix_field == MX_FX) { mx = x + 13; my = 20; mw = 7; }
+            else { mw = 17; }
             oled_hline(mx, mx + mw - 1, my, true);
         }
     }
@@ -227,7 +227,7 @@ static void draw_song(const jam_ui_t *u)
         if (i == song_slot && ((frame / 6) & 1)) oled_rect(x - 1, y - 1, 17, 26, false);
         if (bk < 0) break;   // nothing after the end marker
     }
-    oled_text(1, 57, "turn bank push reps tap play");
+    oled_text(1, 57, "turn:bank  push:reps");
 }
 
 static void draw_setup(const jam_ui_t *u)
