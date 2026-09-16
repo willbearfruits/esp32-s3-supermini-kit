@@ -27,19 +27,92 @@
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "sdkconfig.h"
+#include "esp_vfs_fat.h"
+#include "wear_levelling.h"
+#include <sys/stat.h>
+
+// ---- persistence: /storage/jam/state.bin + sample.raw (int16) -----------------
+#define JAM_DIR   "/storage/jam"
+#define STATE_F   JAM_DIR "/state.bin"
+#define SAMPLE_F  JAM_DIR "/sample.raw"
+static bool mounted;
+static jam_state_t st_buf;
+
+static bool storage_mount(void)
+{
+    static wl_handle_t wl = WL_INVALID_HANDLE;
+    esp_vfs_fat_mount_config_t mc = { .max_files = 4, .format_if_mount_failed = true, .allocation_unit_size = 4096 };
+    esp_err_t e = esp_vfs_fat_spiflash_mount_rw_wl("/storage", "storage", &mc, &wl);
+    if (e != ESP_OK) { ESP_LOGE("jam-ui", "storage mount failed: %s", esp_err_to_name(e)); return false; }
+    mkdir(JAM_DIR, 0777);
+    return true;
+}
+
+static void save_state(void)
+{
+    if (!mounted) return;
+    jam_get_state(&st_buf);
+    FILE *f = fopen(STATE_F, "wb");
+    if (!f) { ESP_LOGW("jam-ui", "cannot write %s", STATE_F); return; }
+    fwrite(&st_buf, sizeof st_buf, 1, f); fclose(f);
+    ESP_LOGI("jam-ui", "saved state");
+}
+
+static void save_sample(void)
+{
+    if (!mounted) return;
+    int max; float *buf = jam_sample_buf(&max);
+    jam_get_state(&st_buf);
+    int len = st_buf.smp_len; if (len <= 0 || !buf) return;
+    FILE *f = fopen(SAMPLE_F, "wb");
+    if (!f) return;
+    static int16_t chunk[1024];
+    for (int i = 0; i < len; i += 1024) {
+        int n = len - i < 1024 ? len - i : 1024;
+        for (int k = 0; k < n; k++) { float v = buf[i + k] * 32767.0f; chunk[k] = (int16_t)(v > 32767 ? 32767 : v < -32768 ? -32768 : v); }
+        fwrite(chunk, sizeof(int16_t), n, f);
+    }
+    fclose(f);
+    ESP_LOGI("jam-ui", "saved sample (%d samples)", len);
+}
+
+static void load_all(void)
+{
+    if (!mounted) return;
+    FILE *f = fopen(STATE_F, "rb");
+    if (!f) { ESP_LOGI("jam-ui", "no saved state, writing defaults"); save_state(); return; }
+    size_t got = fread(&st_buf, 1, sizeof st_buf, f); fclose(f);
+    if (got != sizeof st_buf || st_buf.magic != JAM_MAGIC) { ESP_LOGW("jam-ui", "state file from another version, replaced with defaults"); save_state(); return; }
+    int max; float *buf = jam_sample_buf(&max);
+    if (st_buf.smp_len > 0 && buf) {
+        FILE *sf = fopen(SAMPLE_F, "rb");
+        int len = 0;
+        if (sf) {
+            static int16_t chunk[1024];
+            while (len < st_buf.smp_len && len < max) {
+                int n = fread(chunk, sizeof(int16_t), 1024, sf); if (n <= 0) break;
+                for (int k = 0; k < n && len < max; k++) buf[len++] = chunk[k] / 32768.0f;
+            }
+            fclose(sf);
+        }
+        st_buf.smp_len = len;
+    } else st_buf.smp_len = 0;
+    jam_set_state(&st_buf);
+    ESP_LOGI("jam-ui", "loaded state: %d bpm, sample %d samples", (int)st_buf.bpm, (int)st_buf.smp_len);
+}
 
 static const char *TAG = "jam-ui";
 extern float jam_prof[8];
 enum { PG_PATTERN, PG_MIX, PG_SETUP, PG_N };
 static int page, ch, cur_step, cur_row, mix_field, setup_field;
-static bool perform;
+static int perform;   // PF_*
 
 static void draw_pattern(const jam_ui_t *u)
 {
     char line[64];
     int bar = cur_step / 16;
-    snprintf(line, sizeof line, "%-6s b%d %3d %s%s%s", jam_ch_name(u->sel), bar + 1, u->bpm, u->scale,
-             u->perform ? " PERF" : "", u->rec ? " REC" : "");
+    const char *pf = !u->perform ? "" : u->sel == CH_SAMPLE ? (u->perform == PF_A ? " SCR" : " ROLL") : u->sel == CH_DRUMS ? " ROLL" : " PERF";
+    snprintf(line, sizeof line, "%-6s b%d %3d %s%s%s", jam_ch_name(u->sel), bar + 1, u->bpm, u->scale, pf, u->rec ? " REC" : "");
     oled_text(0, 0, line);
     if (u->sel == CH_MIC) {
         int bar_px = (int)((u->mic_db + 60) / 60 * 120); if (bar_px < 0) bar_px = 0; if (bar_px > 120) bar_px = 120;
@@ -61,7 +134,8 @@ static void draw_pattern(const jam_ui_t *u)
         for (int cidx = 0; cidx < 16; cidx++) {
             int s = col0 + cidx, x = 8 + cidx * 7;
             uint8_t g = u->grid[r][s];
-            if (g & 1) oled_rect(x + 1, y + 1, 5, h - 2, true);
+            if (g == 1) oled_rect(x + 1, y + 1, 5, h - 2, true);
+            else if (g == 2) { oled_rect(x + 1, y + 1, 5, h - 2, false); oled_pixel(x + 3, y + h / 2, true); }
             else if (cidx % 4 == 0) oled_pixel(x + 3, y + h / 2, true);
         }
     }
@@ -111,6 +185,9 @@ void app_jam_run(i2c_master_bus_handle_t bus)
 {
     (void)bus;
     input_init();
+    mounted = storage_mount();
+    load_all();
+    uint32_t seen_dirty = jam_dirty(), seen_gen = jam_sample_gen(); int64_t dirty_at = 0;
     ESP_LOGI(TAG, "JAM: encoder = cursor/value, pushed+turn = channel, tap = toggle, hold = page, 3 s = clear channel; joystick click = perform");
     bool turned = false; int64_t last_log = 0;
     jam_ui_t u; jam_get_ui(&u);
@@ -122,7 +199,7 @@ void app_jam_run(i2c_master_bus_handle_t bus)
             turned = turned || in.pressed;
             if (in.pressed) {
                 if (page == PG_SETUP) setup_field = (setup_field + in.enc + P_N) % P_N;
-                else { ch = (ch + in.enc + CH_N) % CH_N; jam_cmd(CMD_SELECT, ch, 0, 0); cur_row = 0; }
+                else { ch = (ch + in.enc + CH_N) % CH_N; jam_cmd(CMD_SELECT, ch, 0, 0); cur_row = 0; if (perform) { perform = 0; jam_cmd(CMD_PERFORM, ch, 0, 0); } }
             }
             else if (page == PG_PATTERN) { if (ch != CH_MIC) cur_step = (cur_step + in.enc + JAM_STEPS) % JAM_STEPS; }
             else if (page == PG_MIX) jam_cmd(CMD_MIX, ch, mix_field, in.enc);
@@ -134,7 +211,7 @@ void app_jam_run(i2c_master_bus_handle_t bus)
             if (in.flick_u) { if (page == PG_PATTERN && rows) cur_row = (cur_row + 1) % rows; else if (page == PG_SETUP) setup_field = (setup_field + P_N - 1) % P_N; else if (page == PG_MIX) { ch = (ch + CH_N - 1) % CH_N; jam_cmd(CMD_SELECT, ch, 0, 0); } }
             if (in.flick_d) { if (page == PG_PATTERN && rows) cur_row = (cur_row + rows - 1) % rows; else if (page == PG_SETUP) setup_field = (setup_field + 1) % P_N; else if (page == PG_MIX) { ch = (ch + 1) % CH_N; jam_cmd(CMD_SELECT, ch, 0, 0); } }
         }
-        if (in.has_joy && in.joy_click && page == PG_PATTERN) { perform = !perform; jam_cmd(CMD_PERFORM, ch, perform, 0); ESP_LOGI(TAG, "perform %s", perform ? "on" : "off"); }
+        if (in.has_joy && in.joy_click && page == PG_PATTERN) { perform = (perform + 1) % (ch == CH_SAMPLE ? 3 : 2); jam_cmd(CMD_PERFORM, ch, perform, 0); ESP_LOGI(TAG, "perform %d", perform); }
         if (perform) jam_expr(in.jx, in.jy);
         // --- encoder button ---
         if (in.longp) { if (!turned) { jam_cmd(CMD_CLEAR_CH, ch, 0, 0); ESP_LOGI(TAG, "clear %s", jam_ch_name(ch)); } }
@@ -156,6 +233,10 @@ void app_jam_run(i2c_master_bus_handle_t bus)
             oled_flush();
         }
         int64_t now = esp_timer_get_time();
+        // autosave 2 s after the last edit, and the sample right after a recording
+        if (jam_dirty() != seen_dirty) { seen_dirty = jam_dirty(); dirty_at = now; }
+        if (dirty_at && now - dirty_at > 2000000) { dirty_at = 0; save_state(); }
+        if (jam_sample_gen() != seen_gen) { seen_gen = jam_sample_gen(); save_sample(); save_state(); }
         if (now - last_log > 3000000) {
             last_log = now;
             const float blk = 64.0f * CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ * 1e6f / CONFIG_KIT_SAMPLE_RATE;
