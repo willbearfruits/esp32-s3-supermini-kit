@@ -52,7 +52,7 @@ typedef struct { bool on; float pos, rate, amp, end; } svoice_t;   // end: stop 
 typedef struct { int cmd, ch, a, b; } cmd_t;
 
 static struct {
-    int   bpm, style, swing, root, scale, kit, bpre, lpre, ppre;
+    int   bpm, style, swing, chaos, root, scale, kit, bpre, lpre, ppre;
     float step_len, pos; int loop_len, next_step;
     int   sel, perform, smode; bool mute[CH_N]; float mix[CH_N][MX_N];
     uint8_t drum[STEPS][DRUM_N];                // velocity, 0 = none
@@ -65,6 +65,8 @@ static struct {
     float scratch_pos, scratch_rate;
     // ratchet: what fired last, and the roll clock
     uint8_t last_drum[DRUM_N]; int last_smp; int roll_acc, roll_n;
+    // chaos: a short automatic roll scheduled by a mutated step
+    int c_left, c_interval, c_acc, c_target, c_val; float c_pitch;
     float ex, ey;                               // joystick, perform mode
     cmd_t q[CMDQ]; volatile int qw, qr;
     float mic_db;
@@ -75,7 +77,7 @@ static float *lay[TRACKS];
 float jam_prof[8];
 
 const char *jam_ch_name(int ch) { static const char *N[CH_N] = { "DRUMS", "BASS", "LEAD", "PAD", "SAMPLE", "MIC" }; return ch >= 0 && ch < CH_N ? N[ch] : "?"; }
-const char *jam_param_name(int p) { static const char *N[P_N] = { "BPM", "ROOT", "SCALE", "DRUMS", "SWING", "KIT", "BASS", "LEAD", "PAD", "SAMPLE", "CLEAR" }; return p >= 0 && p < P_N ? N[p] : "?"; }
+const char *jam_param_name(int p) { static const char *N[P_N] = { "BPM", "ROOT", "SCALE", "DRUMS", "SWING", "CHAOS", "KIT", "BASS", "LEAD", "PAD", "SAMPLE", "CLEAR" }; return p >= 0 && p < P_N ? N[p] : "?"; }
 static int clampi(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v; }
 static float mtof(float n) { return 440.0f * powf(2.0f, (n - 69) / 12.0f); }
 static const scale_def_t *sc(void) { return &SCALES[S.scale]; }
@@ -169,7 +171,9 @@ static void pad_chord(int row, bool on)
 }
 
 // ---- sequencer -------------------------------------------------------------
-static float human(float vel) { S.drums.seed = S.drums.seed * 1664525u + 1013904223u; return vel * (0.94f + 0.12f * ((S.drums.seed >> 8) & 1023) / 1023.0f); }
+static uint32_t rnd(void) { S.drums.seed = S.drums.seed * 1664525u + 1013904223u; return S.drums.seed >> 8; }
+static float human(float vel) { return vel * (0.94f + 0.12f * (rnd() & 1023) / 1023.0f); }
+static bool chance(int pct) { return (int)(rnd() % 100) < pct; }
 
 static void load_style(int idx)
 {
@@ -182,11 +186,15 @@ static void fire_step(int s)
     if (!S.mute[CH_DRUMS]) {
         bool any = false;
         for (int t = 0; t < DRUM_N; t++) if (S.drum[s][t]) any = true;
+        int mut = any && S.chaos && chance(S.chaos) ? 1 + (int)(rnd() % 3) : 0;   // 1 roll, 2 drop, 3 swap
         for (int t = 0; t < DRUM_N; t++) {
             int v = S.drum[s][t];
             if (any) S.last_drum[t] = v;
-            if (v) { drums_trigger(&S.drums, t, human(v / 127.0f)); if (t == DRUM_KICK) mix_kick(); }
+            if (!v || mut == 2) continue;
+            int tt = mut == 3 ? (t + 1 + (int)(rnd() % (DRUM_N - 1))) % DRUM_N : t;
+            drums_trigger(&S.drums, tt, human(v / 127.0f)); if (tt == DRUM_KICK) mix_kick();
         }
+        if (mut == 1) { S.c_target = CH_DRUMS; S.c_left = 2 + (int)(rnd() % 3); S.c_interval = (int)(S.step_len / (rnd() & 1 ? 2 : 4)); S.c_acc = 0; }
     }
     if (S.bass_off == s) { S.bass_off = -1; fvoice_note(S.bv, 0, 0, false); }
     if (S.lead_off == s) { S.lead_off = -1; fvoice_note(S.lv, 0, 0, false); }
@@ -203,7 +211,13 @@ static void fire_step(int s)
     if ((r = S.note[lane(CH_PAD)][s]) >= 0 && !S.mute[CH_PAD]) { pad_chord(r, true); S.pad_off = (s + PAD_MAX_STEPS) % STEPS; }
     if ((r = S.note[lane(CH_SAMPLE)][s]) >= 0 && !S.mute[CH_SAMPLE]) {
         S.last_smp = r;
-        if (!(S.perform == PF_A && S.sel == CH_SAMPLE)) sample_event(r, 1.0f, 0.9f);
+        int mut = S.chaos && chance(S.chaos) ? 1 + (int)(rnd() % 4) : 0;   // 1 roll, 2 other slice, 3 reverse, 4 octave
+        int val = r; float pitch = 1.0f;
+        if (mut == 2 && S.smode) val = (int)(rnd() % SLICES) + (r >= REV ? REV : 0);
+        if (mut == 3 && S.smode) val = r >= REV ? r - REV : r + REV;
+        if (mut == 4) pitch = rnd() & 1 ? 2.0f : 0.5f;
+        if (!(S.perform == PF_A && S.sel == CH_SAMPLE)) sample_event(val, pitch, 0.9f);
+        if (mut == 1) { S.c_target = CH_SAMPLE; S.c_val = val; S.c_pitch = pitch; S.c_left = 2 + (int)(rnd() % 3); S.c_interval = (int)(S.step_len / (rnd() & 1 ? 2 : 4)); S.c_acc = 0; }
     }
 }
 
@@ -256,7 +270,8 @@ static void clear_ch(int ch)
 static void set_param(int p, int d)
 {
     switch (p) {
-    case P_BPM:   set_tempo(clampi(S.bpm + d, 40, 220)); break;
+    case P_BPM:   set_tempo(clampi(S.bpm + d, 40, 250)); break;
+    case P_CHAOS: S.chaos = clampi(S.chaos + d * 5, 0, 100); break;
     case P_ROOT:  S.root = (S.root + d + 12) % 12; break;
     case P_SCALE: S.scale = (S.scale + d + SCALE_N) % SCALE_N; break;
     case P_STYLE: S.style = (S.style + d + STYLE_N) % STYLE_N; load_style(S.style); break;
@@ -285,6 +300,7 @@ static void apply_state(const jam_state_t *st)
     memcpy(S.note, st->note, sizeof S.note);
     S.smp_len = clampi(st->smp_len, 0, SAMPLE_MAX);
     S.smode = st->version >= 2 ? (st->smode != 0) : 0;
+    S.chaos = st->version >= 3 ? clampi(st->chaos, 0, 100) : 0;
     for (int k = 0; k < SV_N; k++) S.sv[k].on = false;
 }
 
@@ -302,8 +318,9 @@ static void do_cmd(const cmd_t *c)
     case CMD_CLEAR_CH:  clear_ch(c->ch); break;
     case CMD_CLEAR_ALL: for (int ch = 0; ch < CH_N; ch++) clear_ch(ch); break;
     case CMD_MUTE:      S.mute[c->ch] = !S.mute[c->ch]; break;
-    case CMD_MIX: {      // ch, field, delta (in 1/20 steps)
+    case CMD_MIX: {      // ch, field, delta (in 1/20 steps; FX steps through the effect list)
         float *v = &S.mix[c->ch][c->a];
+        if (c->a == MX_FX) { int fx = ((int)*v + c->b + FX_N) % FX_N; *v = (float)fx; break; }
         float lo = c->a == MX_PAN ? -1 : 0;
         *v = clampf(*v + c->b * 0.05f, lo, 1); break; }
     case CMD_PARAM:     set_param(c->a, c->b); break;
@@ -332,8 +349,8 @@ static void init(void)
     S.bass_off = S.lead_off = S.pad_off = -1; S.last_smp = -1;
     S.style = 0; S.scale = 0; S.root = 0;
     static const float MIXDEF[CH_N][MX_N] = {
-        { 0.9f, 0.0f, 0.1f, 0.0f }, { 0.85f, 0.0f, 0.0f, 0.0f }, { 0.75f, 0.15f, 0.3f, 0.25f },
-        { 0.6f, -0.15f, 0.5f, 0.0f }, { 0.85f, 0.1f, 0.25f, 0.15f }, { 0.8f, 0.0f, 0.3f, 0.2f } };
+        { 0.9f, 0.0f, 0.1f, 0.0f, 0, 0.5f }, { 0.85f, 0.0f, 0.0f, 0.0f, 0, 0.5f }, { 0.75f, 0.15f, 0.3f, 0.25f, 0, 0.5f },
+        { 0.6f, -0.15f, 0.5f, 0.0f, 0, 0.5f }, { 0.85f, 0.1f, 0.25f, 0.15f, 0, 0.5f }, { 0.8f, 0.0f, 0.3f, 0.2f, 0, 0.5f } };
     memcpy(S.mix, MIXDEF, sizeof S.mix);
     set_tempo(CONFIG_KIT_BPM);
     S.pos = 0; S.next_step = 0;
@@ -376,6 +393,14 @@ static void IRAM_ATTR process(const float *in, float *out, int n, const voice_t 
             }
         }
     }
+    if (S.c_left > 0) {
+        S.c_acc += n;
+        while (S.c_left > 0 && S.c_acc >= S.c_interval) {
+            S.c_acc -= S.c_interval; S.c_left--;
+            if (S.c_target == CH_DRUMS) { for (int t = 0; t < DRUM_N; t++) if (S.last_drum[t]) drums_trigger(&S.drums, t, S.last_drum[t] / 127.0f * 0.8f); }
+            else sample_event(S.c_val, S.c_pitch, 0.8f);
+        }
+    }
     float bright = 1, bend = 0;
     if (S.perform && (S.sel == CH_BASS || S.sel == CH_LEAD || S.sel == CH_PAD)) { bright = powf(4.0f, S.ex); bend = S.ey * 2.0f; }
     fvoice_bright(S.bv, S.sel == CH_BASS ? bright : 1); fvoice_bright(S.lv, S.sel == CH_LEAD ? bright : 1);
@@ -398,7 +423,8 @@ static void IRAM_ATTR process(const float *in, float *out, int n, const voice_t 
         float rev = S.mix[i][MX_REV], dly = S.mix[i][MX_DLY];
         if (S.perform && S.sel == i && (i == CH_MIC || i == CH_PAD)) { rev = clampf(rev + S.ex, 0, 1); dly = clampf(dly + S.ey, 0, 1); }
         ch[i] = (mix_ch_t){ S.mix[i][MX_VOL], S.mix[i][MX_PAN], rev, dly,
-                            i == CH_MIC ? 120 : i == CH_LEAD ? 100 : i == CH_PAD ? 150 : 0, i == CH_PAD ? -0.2f : 0, 0, 0,
+                            i == CH_MIC ? 120 : i == CH_LEAD ? 100 : i == CH_PAD ? 150 : 0, i == CH_PAD ? -0.2f : 0,
+                            (int)S.mix[i][MX_FX], S.mix[i][MX_AMT],
                             S.mute[i] || (i == CH_MIC && !mic_on), i == CH_BASS || i == CH_PAD };
     }
     mix_process(lay, ch, TRACKS, out, n); prof(6, &c);
@@ -412,7 +438,7 @@ const fx_t fx_jam = { "JAM", init, process, status, NULL, NULL, true, NULL };
 void jam_get_state(jam_state_t *st)
 {
     memset(st, 0, sizeof *st);
-    st->magic = JAM_MAGIC; st->version = 2; st->smode = S.smode;
+    st->magic = JAM_MAGIC; st->version = 3; st->smode = S.smode; st->chaos = S.chaos;
     st->bpm = S.bpm; st->style = S.style; st->swing = S.swing; st->root = S.root; st->scale = S.scale;
     st->kit = S.kit; st->bpre = S.bpre; st->lpre = S.lpre; st->ppre = S.ppre;
     for (int i = 0; i < CH_N; i++) st->mute[i] = S.mute[i];
@@ -455,6 +481,7 @@ void jam_get_ui(jam_ui_t *u)
     snprintf(u->param[P_SCALE], 12, "%s", s->name);
     snprintf(u->param[P_STYLE], 12, "%s", STYLES[S.style].name);
     snprintf(u->param[P_SWING], 12, "%d%%", S.swing);
+    snprintf(u->param[P_CHAOS], 12, "%d%%", S.chaos);
     snprintf(u->param[P_KIT], 12, "%s", kit_name(S.kit));
     snprintf(u->param[P_BASS], 12, "%s", fvoice_preset_name(FV_BASS, S.bpre));
     snprintf(u->param[P_LEAD], 12, "%s", fvoice_preset_name(FV_LEAD, S.lpre));

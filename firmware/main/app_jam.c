@@ -19,6 +19,7 @@
 #include "oled.h"
 #include "audio.h"
 #include "dsp.h"
+#include "mix.h"
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
@@ -149,21 +150,24 @@ static void draw_pattern(const jam_ui_t *u)
 static void draw_mix(const jam_ui_t *u)
 {
     char line[64];
-    static const char *F[MX_N] = { "vol", "pan", "rev", "dly" };
-    snprintf(line, sizeof line, "MIX   %s", F[mix_field]);
+    static const char *F[MX_N] = { "vol", "pan", "rev", "dly", "fx", "amt" };
+    static const char FXC[FX_N] = { '-', 'D', 'C', 'H', 'P', 'W', 'T' };   // none drive crush chorus phaser wobble tremolo
+    int fx = (int)u->mix[ch][MX_FX];
+    snprintf(line, sizeof line, "MIX  %s  %s", F[mix_field], mix_field == MX_FX ? mix_fx_name(fx) : "");
     oled_text(0, 0, line);
     for (int i = 0; i < CH_N; i++) {
         int y = 9 + i * 9;
         if (i == ch) { oled_rect(0, y - 1, 30, 9, true); oled_text_c(1, y, jam_ch_name(i), false); }
         else oled_text(1, y, jam_ch_name(i));
-        if (u->mute[i]) oled_text(32, y, "M");
-        int x = 40;
+        if (u->mute[i]) oled_text(31, y, "M");
+        int x = 39;
         for (int f = 0; f < MX_N; f++) {
-            float v = u->mix[i][f]; int w = 18;
-            if (f == MX_PAN) { oled_rect(x + w / 2, y + 1, 1, 6, true); int px = x + w / 2 + (int)(v * w / 2); oled_rect(px - 1, y + 2, 3, 4, true); }
+            float v = u->mix[i][f]; int w = f == MX_FX ? 8 : 14;
+            if (f == MX_PAN) { oled_rect(x + w / 2, y + 1, 1, 6, true); int px = x + w / 2 + (int)(v * (w / 2 - 1)); oled_rect(px - 1, y + 2, 3, 4, true); }
+            else if (f == MX_FX) { char c[2] = { FXC[((int)v) % FX_N], 0 }; oled_text(x + 1, y, c); }
             else { oled_rect(x, y + 5, w, 2, false); oled_rect(x, y + 2, (int)(v * w), 5, true); }
             if (i == ch && f == mix_field) oled_rect(x, y + 8, w, 1, true);
-            x += w + 4;
+            x += w + 1;
         }
     }
 }

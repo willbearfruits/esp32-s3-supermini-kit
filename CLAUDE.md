@@ -104,8 +104,13 @@ the fx table per application. The build uses `-O3
   flicks navigate, click toggles perform. Drum styles are loaded into the
   grid from SETUP, nothing plays that is not on the grid. The joystick is
   mounted a quarter turn off and rotated in `input.c`. Mic is only in the
-  mix while its channel is selected. Calls
-  `voice_set_pitch(false)`: no YIN, saves ~25% CPU. No save yet.
+  mix while its channel is selected. Calls `voice_set_pitch(false)`: no
+  YIN, saves ~25% CPU. State + sample autosave to `/storage/jam/` (versioned
+  `jam_state_t`, an old layout is replaced with defaults). Breakcore bits:
+  sample SLICE mode (8 slice rows, cells cycle forward/reverse), joystick
+  click cycles perform modes (DRUMS roll; SAMPLE scratch, roll), SETUP
+  CHAOS % mutates steps (roll, drop, swap, other slice, reverse, octave),
+  MIX page has an insert fx column (mix.c FX_*) and amount.
 - Faust showcase (`CONFIG_KIT_APP_FAUST`): same UI as the test app, fx list
   from `fx_faust.cpp`. Programs live in `firmware/faust/*.dsp`; run
   `tools/faustgen.sh` (needs `faust` on PATH) after editing one. It writes

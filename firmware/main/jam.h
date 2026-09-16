@@ -11,8 +11,8 @@
 
 enum { CH_DRUMS, CH_BASS, CH_LEAD, CH_PAD, CH_SAMPLE, CH_MIC, CH_N };
 enum { CMD_SELECT, CMD_TOGGLE, CMD_CLEAR_CH, CMD_CLEAR_ALL, CMD_MUTE, CMD_MIX, CMD_PARAM, CMD_REC, CMD_PERFORM, CMD_LOAD };
-enum { MX_VOL, MX_PAN, MX_REV, MX_DLY, MX_N };
-enum { P_BPM, P_ROOT, P_SCALE, P_STYLE, P_SWING, P_KIT, P_BASS, P_LEAD, P_PAD, P_SMODE, P_CLEAR, P_N };   // P_CLEAR: tap fires CLEAR ALL
+enum { MX_VOL, MX_PAN, MX_REV, MX_DLY, MX_FX, MX_AMT, MX_N };   // MX_FX: insert effect index (mix.h FX_*), MX_AMT its amount
+enum { P_BPM, P_ROOT, P_SCALE, P_STYLE, P_SWING, P_CHAOS, P_KIT, P_BASS, P_LEAD, P_PAD, P_SMODE, P_CLEAR, P_N };   // P_CLEAR: tap fires CLEAR ALL
 enum { PF_OFF, PF_A, PF_B };            // perform modes: DRUMS roll; SAMPLE scratch, roll; synths bend/filter; pad, mic sends
 #define JAM_STEPS 32
 #define JAM_ROWS  8
@@ -40,6 +40,7 @@ typedef struct {
     uint8_t  drum[JAM_STEPS][3]; int8_t note[4][JAM_STEPS];
     int32_t  smp_len;
     int32_t  smode;                             // 0 pitch, 1 slice (version 2)
+    int32_t  chaos;                             // version 3; mix[] gained fx and amt
 } jam_state_t;
 void     jam_get_state(jam_state_t *st);
 void     jam_set_state(const jam_state_t *st);
