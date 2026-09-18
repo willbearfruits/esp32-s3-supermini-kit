@@ -78,6 +78,13 @@ images/       photos and rendered screens
 hardware/     later: KiCad carrier PCB
 ```
 
+## Build one
+
+The illustrated [assembly guide](docs/assembly/README.md), also as a
+[16-page PDF](output/pdf/esp32-s3-supermini-assembly-guide.pdf), takes a first-time
+builder from parts to a first beat: power, flashing the test image, adding
+one module at a time, the bench check, the case, then JAM.
+
 ## Flash a release
 
 No toolchain needed: each [release](https://github.com/willbearfruits/esp32-s3-supermini-kit/releases)

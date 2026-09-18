@@ -21,3 +21,4 @@ firmware/managed_components/
 .~lock.*#
 docs/pinmap.html
 release/
+tools/__pycache__/

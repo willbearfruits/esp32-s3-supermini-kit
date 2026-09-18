@@ -69,22 +69,15 @@ table{width:100%;border-collapse:collapse;font-size:.9rem;margin:1.2rem 0}th{bac
 </div>
 </section>
 <section id="firmware"><p class="tag">03 / WAKE UP THE BRAIN</p><h2>Teach it the test tune.</h2><p class="intro">Start with only the ESP32 connected to USB. The hardware-test app lets you add modules gradually and see what is working.</p>
-<p>Install ESP-IDF v5.5 with ESP32-S3 support using Espressif&#x27;s Getting Started guide (linked on page 16). ESP-IDF builds and transfers the program. The commands below are for a Linux/macOS shell; on Windows use the ESP-IDF terminal and the menuconfig route below.</p>
-<pre><code># Skip cloning if you already have this repository.
-git clone https://github.com/willbearfruits/esp32-s3-supermini-kit.git
-cd esp32-s3-supermini-kit
-. ~/esp/esp-idf/export.sh  # change to your IDF install path
-cd firmware
-idf.py set-target esp32s3
-idf.py menuconfig</code></pre>
-<p>In menuconfig, open Kit firmware &gt; Application and select the hardware-test application (CONFIG_KIT_APP_TEST). Save and exit. Run set-target on a fresh setup only; it may reset an existing local configuration.</p>
-<pre><code>idf.py build
-idf.py flash monitor</code></pre>
-<p>The build needs internet access the first time to fetch components. If more than one board is connected, use idf.py -p YOUR_PORT flash monitor, replacing YOUR_PORT with the detected serial port. Exit the monitor with Ctrl+].</p>
+<p>The quickest route needs no toolchain: every release on GitHub ships one file per application that flashes at offset 0. Download kit-test.bin from the latest release, install esptool with pip, and write it. Use the port your system shows: /dev/ttyACM0 on Linux, /dev/cu.usbmodem* on macOS, COM3 or similar on Windows.</p>
+<pre><code>pip install esptool
+esptool.py --chip esp32s3 write_flash 0x0 kit-test.bin</code></pre>
+<p>No terminal? Open esptool-js (linked on page 16) in Chrome or Edge, connect, pick kit-test.bin at address 0x0, and program. Building from source instead: install ESP-IDF v5.5 with ESP32-S3 support, then run tools/app.sh test in the repository and idf.py flash monitor in firmware/. The build fetches components from the internet the first time.</p>
+<p>To watch the serial log without ESP-IDF, use any terminal at 115200 baud on the same port. The log names the likely missing wire when something is off. Exit idf.py monitor with Ctrl+].</p>
 <aside class="callout"><strong>A SUCCESSFUL FIRST BOOT</strong><p>Look for the test-app message about a 440 Hz tone for 4 seconds, then mic only. No OLED and no mic data are expected right now. Unplug USB before attaching the display.</p></aside>
-<p>Board missing? Try another data cable and USB port. To enter download mode, hold BOOT, tap RESET, then release BOOT and flash again. If your board lacks RESET, hold BOOT while reconnecting USB, then release it. On Linux, follow Espressif&#x27;s serial-port permissions instructions if access is denied.</p>
+<p>Board missing? Try another data cable and USB port; a charge-only cable never shows up. To enter download mode, hold BOOT, tap RESET, then release BOOT and flash again. If your board lacks RESET, hold BOOT while reconnecting USB, then release it. On Linux, follow Espressif&#x27;s serial-port permissions instructions if access is denied.</p>
 <div class="checks"><strong>Checkpoint</strong>
-<label><input type="checkbox" data-key="firmware-7-0"><span>The hardware-test firmware flashes and its serial log appears.</span></label>
+<label><input type="checkbox" data-key="firmware-6-0"><span>The hardware-test firmware flashes and its serial log appears.</span></label>
 </div>
 </section>
 <section id="display"><p class="tag">04 / GIVE IT A FACE</p><h2>Hello, tiny screen.</h2><p class="intro">Disconnect USB. Read the four OLED labels carefully; their order varies between modules.</p>
@@ -158,10 +151,8 @@ idf.py flash monitor</code></pre>
 </section>
 <section id="jam"><p class="tag">11 / MAKE YOUR FIRST BEAT</p><h2>Your tiny band is ready.</h2><p class="intro">Switch to JAM when the hardware checks pass. It is the case-friendly sequencer: six channels, a sampler, and a grid of musical possibilities.</p>
 <figure class="photo"><img src="../../images/jam/pattern-drums.png" alt="Actual JAM drum-grid render from the repository. The grid contains two bars of 16 steps." loading="lazy"><figcaption>Actual JAM drum-grid render from the repository. The grid contains two bars of 16 steps.</figcaption></figure>
-<p>Exit the serial monitor with Ctrl+]. In your activated ESP-IDF shell, from the repository root, run the following. The first setup on page 5 must have created firmware/sdkconfig. On Windows, select JAM in menuconfig, then build and flash instead.</p>
-<pre><code>tools/app.sh jam
-cd firmware
-idf.py flash monitor</code></pre>
+<p>Flash kit-jam.bin from the release the same way as the test image, or from source: tools/app.sh jam in the repository, then idf.py flash in firmware/. JAM is the default application when building from a fresh checkout.</p>
+<pre><code>esptool.py --chip esp32s3 write_flash 0x0 kit-jam.bin</code></pre>
 <div class="table-scroll"><table><thead><tr><th scope="col">Gesture in JAM</th><th scope="col">What happens</th></tr></thead><tbody><tr><td>Turn encoder / flick joystick</td><td>Move the pattern cursor</td></tr><tr><td>Tap encoder</td><td>Toggle the selected grid cell</td></tr><tr><td>Hold encoder about 0.5 seconds</td><td>Next page: PATTERN, MIX, SONG, SETUP</td></tr><tr><td>Push encoder and turn</td><td>Change channel</td></tr><tr><td>Click joystick</td><td>Enter/cycle perform mode; behavior depends on channel</td></tr><tr><td>Hold encoder 3 seconds</td><td>Clear the current channel - use deliberately</td></tr></tbody></table></div>
 <aside class="callout"><strong>THE FIRST-BEAT CHALLENGE</strong><p>Select DRUMS on PATTERN. Put kicks on steps 1, 5, 9 and 13 of the first bar; add snare on 5 and 13 and hats on odd steps. Repeat in the second bar. Then switch to BASS and add three notes. Hear that? You built the band.</p></aside>
 <p>Verify the joystick moves the cursor and its click changes perform mode. JAM autosaves about two seconds after the last edit; wait a few extra seconds before unplugging. Try a sample next: select MIC and tap to record up to two seconds, then select SAMPLE. Live mic is audible only while MIC is selected.</p>
@@ -189,9 +180,9 @@ idf.py flash monitor</code></pre>
 <h3>A few words decoded</h3>
 <p>GPIO: a programmable signal pin. DAC: digital sound to analog audio. I2S: digital audio bus. I2C: two-wire display/sensor bus. VIN/VCC/VDD: power labels whose voltage depends on the board. Continuity: a meter check for an electrical connection. Dry-fit: assemble without power or permanent fastening.</p>
 <h3>Sources and build notes</h3>
-<p>Prepared from repository revision d52a80d: firmware/main/pins.h, main.c, app_test.c, audio.c, input.c and Kconfig.projbuild; README.md; parts/minimal-kit.md; enclosure/enclosure.scad and enclosure/README.md. This guide documents the prototype; no physical assembly or electrical test was performed for this edition.</p>
-<ul class="links"><li><a href="https://github.com/willbearfruits/esp32-s3-supermini-kit">Project and firmware</a></li><li><a href="https://docs.espressif.com/projects/esp-idf/en/v5.5/esp32s3/get-started/index.html">Espressif: install ESP-IDF v5.5 for ESP32-S3</a></li><li><a href="https://www.ti.com/product/PCM5102A">TI: PCM5102A line-output specification</a></li><li><a href="https://learn.adafruit.com/adafruit-max98357-i2s-class-d-mono-amp/pinouts">Adafruit: MAX98357A breakout pinouts (match your board)</a></li></ul>
-<p>Illustrations are editable SVGs with PNG companions. Case and JAM images come from this repository. Rebuild instructions and the browser checklist are beside the guide in docs/assembly/. Documentation and new artwork: MIT, as in the repository license.</p>
+<p>Prepared from the repository&#x27;s firmware/main/pins.h, main.c, app_test.c, audio.c, input.c and Kconfig.projbuild, README.md, parts/minimal-kit.md and enclosure/. This guide documents the prototype; no physical assembly or electrical test was performed for this edition.</p>
+<ul class="links"><li><a href="https://github.com/willbearfruits/esp32-s3-supermini-kit">Project and firmware</a></li><li><a href="https://github.com/willbearfruits/esp32-s3-supermini-kit/releases">Releases with ready-to-flash images</a></li><li><a href="https://espressif.github.io/esptool-js/">esptool-js browser flasher</a></li><li><a href="https://docs.espressif.com/projects/esp-idf/en/v5.5/esp32s3/get-started/index.html">Espressif: install ESP-IDF v5.5 for ESP32-S3</a></li><li><a href="https://www.ti.com/product/PCM5102A">TI: PCM5102A line-output specification</a></li><li><a href="https://learn.adafruit.com/adafruit-max98357-i2s-class-d-mono-amp/pinouts">Adafruit: MAX98357A breakout pinouts (match your board)</a></li></ul>
+<p>Illustrations are editable SVGs with PNG companions; case and JAM images come from this repository. Documentation and artwork: MIT, as in the repository license.</p>
 </section></main></div><footer>Prototype edition / September 2026. Checklist stays in this browser when local storage is available.<p class="actions"><button id="reset" type="button">Reset my checklist</button></p></footer><script>
 const boxes = [...document.querySelectorAll('input[data-key]')];
 const store = 'supermini-assembly-v1:';

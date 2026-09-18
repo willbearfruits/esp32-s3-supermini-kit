@@ -161,6 +161,13 @@ the fx table per application. The build uses `-O3
   HTML/CSV and the resource manifest from the markdown (needs the Python
   `markdown` package). `research-2026-09-09/` has downloaded datasheets and
   drawings.
+- `docs/assembly/` is the illustrated assembly guide. Its source of truth is
+  `guide.json`; `tools/build-assembly-guide.py` regenerates README.md,
+  index.html, the SVG/PNG artwork and `output/pdf/*.pdf` (needs the venv from
+  `docs/assembly/requirements.txt`, Cairo and Liberation fonts). Edit the JSON,
+  never the generated files; the builder fails on a page that overflows and
+  checks the GPIO table against `pins.h`. `output/pdf/` is committed so links
+  work on GitHub.
 - `images/jam/` holds the JAM page renders used by the README. `docs/pinout.md`
   and `hardware/{schematic,pcb,manufacturing}` are scaffold placeholders for
   the KiCad carrier PCB milestone.

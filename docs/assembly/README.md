@@ -142,32 +142,22 @@ Leave batteries and charging boards out of this build: the project has no comple
 
 Start with only the ESP32 connected to USB. The hardware-test app lets you add modules gradually and see what is working.
 
-Install ESP-IDF v5.5 with ESP32-S3 support using Espressif's Getting Started guide (linked on page 16). ESP-IDF builds and transfers the program. The commands below are for a Linux/macOS shell; on Windows use the ESP-IDF terminal and the menuconfig route below.
+The quickest route needs no toolchain: every release on GitHub ships one file per application that flashes at offset 0. Download kit-test.bin from the latest release, install esptool with pip, and write it. Use the port your system shows: /dev/ttyACM0 on Linux, /dev/cu.usbmodem* on macOS, COM3 or similar on Windows.
 
 ```sh
-# Skip cloning if you already have this repository.
-git clone https://github.com/willbearfruits/esp32-s3-supermini-kit.git
-cd esp32-s3-supermini-kit
-. ~/esp/esp-idf/export.sh  # change to your IDF install path
-cd firmware
-idf.py set-target esp32s3
-idf.py menuconfig
+pip install esptool
+esptool.py --chip esp32s3 write_flash 0x0 kit-test.bin
 ```
 
-In menuconfig, open Kit firmware > Application and select the hardware-test application (CONFIG_KIT_APP_TEST). Save and exit. Run set-target on a fresh setup only; it may reset an existing local configuration.
+No terminal? Open esptool-js (linked on page 16) in Chrome or Edge, connect, pick kit-test.bin at address 0x0, and program. Building from source instead: install ESP-IDF v5.5 with ESP32-S3 support, then run tools/app.sh test in the repository and idf.py flash monitor in firmware/. The build fetches components from the internet the first time.
 
-```sh
-idf.py build
-idf.py flash monitor
-```
-
-The build needs internet access the first time to fetch components. If more than one board is connected, use idf.py -p YOUR_PORT flash monitor, replacing YOUR_PORT with the detected serial port. Exit the monitor with Ctrl+].
+To watch the serial log without ESP-IDF, use any terminal at 115200 baud on the same port. The log names the likely missing wire when something is off. Exit idf.py monitor with Ctrl+].
 
 > **A SUCCESSFUL FIRST BOOT**
 >
 > Look for the test-app message about a 440 Hz tone for 4 seconds, then mic only. No OLED and no mic data are expected right now. Unplug USB before attaching the display.
 
-Board missing? Try another data cable and USB port. To enter download mode, hold BOOT, tap RESET, then release BOOT and flash again. If your board lacks RESET, hold BOOT while reconnecting USB, then release it. On Linux, follow Espressif's serial-port permissions instructions if access is denied.
+Board missing? Try another data cable and USB port; a charge-only cable never shows up. To enter download mode, hold BOOT, tap RESET, then release BOOT and flash again. If your board lacks RESET, hold BOOT while reconnecting USB, then release it. On Linux, follow Espressif's serial-port permissions instructions if access is denied.
 
 - [ ] The hardware-test firmware flashes and its serial log appears.
 
@@ -380,12 +370,10 @@ Switch to JAM when the hardware checks pass. It is the case-friendly sequencer: 
 
 ![Actual JAM drum-grid render from the repository. The grid contains two bars of 16 steps.](../../images/jam/pattern-drums.png)
 
-Exit the serial monitor with Ctrl+]. In your activated ESP-IDF shell, from the repository root, run the following. The first setup on page 5 must have created firmware/sdkconfig. On Windows, select JAM in menuconfig, then build and flash instead.
+Flash kit-jam.bin from the release the same way as the test image, or from source: tools/app.sh jam in the repository, then idf.py flash in firmware/. JAM is the default application when building from a fresh checkout.
 
 ```sh
-tools/app.sh jam
-cd firmware
-idf.py flash monitor
+esptool.py --chip esp32s3 write_flash 0x0 kit-jam.bin
 ```
 
 | Gesture in JAM | What happens |
@@ -500,14 +488,16 @@ GPIO: a programmable signal pin. DAC: digital sound to analog audio. I2S: digita
 
 ### Sources and build notes
 
-Prepared from repository revision d52a80d: firmware/main/pins.h, main.c, app_test.c, audio.c, input.c and Kconfig.projbuild; README.md; parts/minimal-kit.md; enclosure/enclosure.scad and enclosure/README.md. This guide documents the prototype; no physical assembly or electrical test was performed for this edition.
+Prepared from the repository's firmware/main/pins.h, main.c, app_test.c, audio.c, input.c and Kconfig.projbuild, README.md, parts/minimal-kit.md and enclosure/. This guide documents the prototype; no physical assembly or electrical test was performed for this edition.
 
 - [Project and firmware](https://github.com/willbearfruits/esp32-s3-supermini-kit)
+- [Releases with ready-to-flash images](https://github.com/willbearfruits/esp32-s3-supermini-kit/releases)
+- [esptool-js browser flasher](https://espressif.github.io/esptool-js/)
 - [Espressif: install ESP-IDF v5.5 for ESP32-S3](https://docs.espressif.com/projects/esp-idf/en/v5.5/esp32s3/get-started/index.html)
 - [TI: PCM5102A line-output specification](https://www.ti.com/product/PCM5102A)
 - [Adafruit: MAX98357A breakout pinouts (match your board)](https://learn.adafruit.com/adafruit-max98357-i2s-class-d-mono-amp/pinouts)
 
-Illustrations are editable SVGs with PNG companions. Case and JAM images come from this repository. Rebuild instructions and the browser checklist are beside the guide in docs/assembly/. Documentation and new artwork: MIT, as in the repository license.
+Illustrations are editable SVGs with PNG companions; case and JAM images come from this repository. Documentation and artwork: MIT, as in the repository license.
 
 ## Rebuild the guide
 

@@ -1,5 +1,11 @@
 # 3D OpenSCAD Enclosure for ESP32-S3 Audio Kit (Shortlist Edition)
 
+For the full build, use the [beginner assembly guide](../docs/assembly/README.md)
+or [16-page printable PDF](../output/pdf/esp32-s3-supermini-assembly-guide.pdf).
+It covers bench testing, wiring, dry-fit checks, and enclosure assembly. The
+dimensions below describe the CAD; verify them against your actual boards,
+headers, plugs, inserts, and screws before printing or fastening.
+
 A custom, ergonomic, 3D-printable handheld enclosure designed specifically for the **six parts of the Minimal Audio Kit shortlist** (plus internal mounting for the MPU6050 IMU), optimized for **0.8 mm nozzle printing** and **brass heat-set threaded inserts**.
 
 ![Enclosure Preview](out/preview.png)
@@ -132,4 +138,3 @@ Both parts are designed for **100% support-free printing**:
 # Or open interactively in OpenSCAD
 openscad enclosure.scad
 ```
-
