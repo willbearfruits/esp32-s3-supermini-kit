@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Make a little noise | SuperMini assembly</title><meta name="description" content="A beginner-friendly ESP32-S3 SuperMini assembly guide with labeled wiring, checkpoints, and a printable PDF."><style>
+:root{--ink:#19393c;--teal:#007d79;--cream:#faf8f0;--mint:#dff2e9;--muted:#53696b}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:5rem}
+body{margin:0;background:var(--cream);color:var(--ink);font:17px/1.6 system-ui,sans-serif}
+a{color:var(--teal);text-underline-offset:3px}a:hover{text-decoration-thickness:2px}
+header{background:var(--ink);color:white;padding:1rem 4vw;display:flex;gap:1rem;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2}
+header a{color:#b8f2dc;font-size:.88rem}header strong{font-size:.95rem}#progress{font-variant-numeric:tabular-nums;font-size:.8rem}
+.layout{max-width:1300px;margin:auto;display:grid;grid-template-columns:240px minmax(0,1fr);gap:2.5rem;padding:2rem}
+nav{align-self:start;position:sticky;top:6rem;max-height:80vh;overflow:auto;font-size:.85rem}nav a{display:block;padding:.35rem .6rem;text-decoration:none;border-left:2px solid #d9e5df}nav a:hover{background:var(--mint)}
+main{min-width:0}section{background:white;padding:2.5rem;border:1px solid #dce6e0;border-radius:20px;margin-bottom:2rem;box-shadow:0 6px 20px #19393c05}
+.tag{font-size:.72rem;font-weight:800;letter-spacing:.15em;color:var(--teal);margin:0 0 .6rem}h1,h2{font-size:clamp(1.8rem,3.2vw,2.8rem);line-height:1.08;letter-spacing:-.045em;margin:.5rem 0 1.2rem}h3{font-size:1.1rem;margin:1.5rem 0 .7rem}.intro{font-size:1.16rem;color:var(--muted)}
+figure{margin:1.5rem 0}figure img{display:block;width:100%;height:auto;border-radius:12px}figure.photo img{max-height:280px;object-fit:contain;background:#1d1f20}figcaption{font-size:.78rem;color:var(--muted);margin-top:.5rem}.table-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin:1.2rem 0}th{background:var(--ink);color:white;text-align:left}th,td{padding:.7rem .8rem;vertical-align:top}tbody tr:nth-child(even){background:#f1f6f2}td{border-bottom:1px solid #dde6df}
+.callout{border-left:5px solid var(--teal);background:var(--mint);padding:1rem 1.2rem;border-radius:0 10px 10px 0;margin:1.4rem 0}.callout strong{display:block;font-size:.75rem;letter-spacing:.08em;margin-bottom:.4rem}.callout p{margin:0}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#eff3f1;border:1px solid #d7e2db;padding:1rem;font:12px/1.7 ui-monospace,monospace;border-radius:9px}li{margin-bottom:.65rem}ul,ol{padding-left:1.5rem}
+.checks{background:#fff6df;padding:1rem 1.2rem;border-radius:10px;margin:1.3rem 0}.checks label{display:flex;align-items:baseline;gap:.65rem;margin:.7rem 0}.checks input{width:1.1rem;height:1.1rem;flex-shrink:0;accent-color:var(--teal)}.checks label:has(input:checked){color:var(--teal)}.links{font-size:.88rem}footer{padding:0 2rem 3rem;color:var(--muted);text-align:center;font-size:.82rem}button{font:inherit;border:1px solid #a4bcb0;border-radius:7px;background:white;color:var(--ink);padding:.5rem .8rem;cursor:pointer}
+@media(max-width:850px){.layout{display:block;padding:1rem}nav{position:static;max-height:none;margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:.25rem}nav a{border:1px solid #d9e5df;border-radius:8px;padding:.3rem .5rem}section{padding:1.4rem}header{flex-wrap:wrap;position:static}.intro{font-size:1.05rem}th,td{padding:.5rem;font-size:.82rem}}
+@media print{header,nav,.actions,footer{display:none}.layout{display:block;padding:0}section{break-before:page;box-shadow:none;border:0;padding:0;font-size:10pt;line-height:1.35}section:first-child{break-before:auto}h1,h2{font-size:25pt}figure img{max-height:180px;object-fit:contain}table{font-size:9pt}a{color:inherit}body{background:white}pre{font-size:8pt}}
+</style></head><body><header><strong>SUPERMINI / BUILD & PLAY</strong><span id="progress" aria-live="polite"></span><a href="../../output/pdf/esp32-s3-supermini-assembly-guide.pdf">Download the 16-page PDF</a></header><div class="layout"><nav aria-label="Guide chapters"><a href="#hello">01 / Make a little noise.</a>
+<a href="#start">02 / Small steps. Happy beeps.</a>
+<a href="#parts">03 / Seven little teammates.</a>
+<a href="#power">04 / Two rails. One ground.</a>
+<a href="#firmware">05 / Teach it the test tune.</a>
+<a href="#display">06 / Hello, tiny screen.</a>
+<a href="#microphone">07 / Say hello. Watch it listen.</a>
+<a href="#dac">08 / Meet the purple sound card.</a>
+<a href="#controls">09 / Twist. Tilt. Click.</a>
+<a href="#bench">10 / Earn your first-sound badge.</a>
+<a href="#case-prep">11 / Print. Measure. Dry-fit.</a>
+<a href="#case-assembly">12 / Build the shell sandwich.</a>
+<a href="#jam">13 / Your tiny band is ready.</a>
+<a href="#extras">14 / Add extras after the win.</a>
+<a href="#rescue">15 / One clue at a time.</a>
+<a href="#reference">16 / Your pocket pin map.</a></nav><main><section id="hello"><p class="tag">LET&#x27;S BUILD A MUSIC MACHINE</p><h1>Make a little noise.</h1><p class="intro">A microphone, a tiny screen, two playful controls, and a whole lot of sound. Build your kit one small win at a time.</p>
+<figure class="diagram"><img src="assets/hero.svg" alt="Illustrated layout of the current case. USB-C and line-out exit the front edge." loading="lazy"><figcaption>Illustrated layout of the current case. USB-C and line-out exit the front edge.</figcaption></figure>
+<aside class="callout"><strong>YOUR FINISH LINE</strong><p>A USB-powered instrument that hears your voice and plays through powered speakers, an audio interface, or a separate headphone amp.</p></aside>
+<p>This is a guide to the current wired prototype. The socketed carrier PCB is not finished. Some parts need soldered headers or prepared leads, and the printed case must be checked against your exact boards.</p>
+<p>Follow the numbered missions, tick the checkpoints, and keep the case open until the electronics pass. First electronics build? Invite an experienced maker for the soldering and power checks.</p>
+<p>Inside: a parts field guide, labeled wiring diagrams, firmware steps, case assembly, a first-beat challenge, and a rescue page. All wiring illustrations use signal names, not physical pin positions.</p>
+</section>
+<section id="start"><p class="tag">00 / CHOOSE YOUR ADVENTURE</p><h2>Small steps. Happy beeps.</h2><p class="intro">Work on a clear, nonconductive table. Give yourself an unhurried afternoon for the electronics, plus printing and software setup time.</p>
+<div class="table-scroll"><table><thead><tr><th scope="col">Mission</th><th scope="col">Your small win</th><th scope="col">Page</th></tr></thead><tbody><tr><td>Prepare</td><td>Identify every module and power pin</td><td>3-4</td></tr><tr><td>Wake up the brain</td><td>Flash the hardware-test app</td><td>5</td></tr><tr><td>Add the senses</td><td>Screen on; mic responding</td><td>6-7</td></tr><tr><td>Make sound</td><td>Wire the DAC and controls; pass the bench test</td><td>8-10</td></tr><tr><td>Give it a home</td><td>Dry-fit, mount, route, close</td><td>11-12</td></tr><tr><td>Play</td><td>Make a beat in JAM</td><td>13</td></tr></tbody></table></div>
+<h3>Put these within reach</h3>
+<ul><li>A computer, USB-C data cable, and powered speaker with AUX/line input (or an audio interface / headphone amplifier). A charge-only cable cannot flash the board.</li><li>Short jumper wires with ends that fit your headers; a breadboard or insulated distribution board for shared connections. Check whether breadboard power rails are split.</li><li>A multimeter, small screwdrivers, tape labels, wire cutters, and a ruler or calipers. Use insulated wire and strain relief for the final harness.</li><li>For unfinished headers, DAC straps, or the bare EC11: a soldering iron, stand, solder, ventilation, and heat-shrink. Get hands-on help if these are new to you.</li></ul>
+<aside class="callout"><strong>THE ONE HABIT THAT SAVES BOARDS</strong><p>Unplug USB and every other power source before adding, moving, soldering, or checking continuity on a wire. Power up only after checking the new connections.</p></aside>
+<p>Solderless means the connections are already prepared: headers fitted, DAC straps set, and the encoder on an adapter or harness. Loose pins pushed through bare holes are not reliable electrical joints.</p>
+<div class="checks"><strong>Checkpoint</strong>
+<label><input type="checkbox" data-key="start-5-0"><span>I have a data cable and a suitable line-level listening device.</span></label>
+<label><input type="checkbox" data-key="start-5-1"><span>I know which parts need soldering or prepared leads.</span></label>
+</div>
+</section>
+<section id="parts"><p class="tag">01 / MEET THE BAND</p><h2>Seven little teammates.</h2><p class="intro">Match the printed labels and the exact board version. Color and shape are clues, never proof of a pinout.</p>
+<figure class="diagram"><img src="assets/parts.svg" alt="Simplified identification drawings; not to scale and not a footprint or pin-order reference." loading="lazy"><figcaption>Simplified identification drawings; not to scale and not a footprint or pin-order reference.</figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th scope="col">Qty</th><th scope="col">Part</th><th scope="col">Check before wiring</th></tr></thead><tbody><tr><td>1</td><td>ESP32-S3 SuperMini</td><td>ESP32-S3FH4R2; 4 MB flash, 2 MB PSRAM; USB-C</td></tr><tr><td>1</td><td>PCM5102A DAC</td><td>Purple jack board; verify VIN rating and all four straps</td></tr><tr><td>1</td><td>KY-023-style joystick</td><td>Board with fitted pins and cap; VRx, VRy, SW</td></tr><tr><td>1</td><td>Bare EC11 encoder</td><td>Push switch, matching nut/washer/knob; prepared leads</td></tr><tr><td>1</td><td>INMP441 microphone</td><td>Round six-pin board; confirm actual chip and pin labels</td></tr><tr><td>1</td><td>SSD1306 OLED</td><td>0.96-inch, 128 x 64, four-pin I2C version</td></tr><tr><td>1</td><td>MPU6050 / GY-521</td><td>Motion sensor; optional for first sound and JAM</td></tr></tbody></table></div>
+<p>Also gather wiring, the USB data cable, and a line-out cable. Case hardware is listed on page 11. The MAX98357A speaker amp and VL53L0X distance sensor are optional extras (page 14), not part of this seven-part list.</p>
+<aside class="callout"><strong>LOOK TWICE, PLUG ONCE</strong><p>Some OLEDs swap VCC and GND. Some six-pin microphones use another chip. Seller listings are not verified kit specifications. If a pin or board revision is unclear, identify it before powering it.</p></aside>
+<div class="checks"><strong>Checkpoint</strong>
+<label><input type="checkbox" data-key="parts-3-0"><span>My modules match this list, and their power pins are readable.</span></label>
+</div>
+</section>
+<section id="power"><p class="tag">02 / POWER WITHOUT SURPRISES</p><h2>Two rails. One ground.</h2><p class="intro">A rail is a shared power connection. GND is the common reference. GPIO numbers identify signals on the ESP32, not the position of a header pin.</p>
+<figure class="diagram"><img src="assets/power.svg" alt="USB powers the ESP32. Use its labeled rails only after checking your board&#x27;s power path." loading="lazy"><figcaption>USB powers the ESP32. Use its labeled rails only after checking your board&#x27;s power path.</figcaption></figure>
+<ul><li>Use USB-only power for this build. Identify the SuperMini&#x27;s labeled 3V3, GND, and USB 5V/VBUS pins from the exact board documentation. Do not count header positions from a generic photo.</li><li>Use 3.3 V for the INMP441, joystick, and a verified 3.3 V-compatible OLED. Sensor add-ons must also keep SDA/SCL and all GPIO signals at 3.3 V.</li><li>The documented purple DAC board uses 5 V at VIN through its onboard regulator. Confirm this for your revision before connecting it. Never put 5 V on a bare PCM5102A chip, a 3V3 pin, or an ESP32 GPIO.</li><li>Join every module GND to ESP32 GND. Make shared connections with proper rails or a soldered distribution point; do not cram several wires into one jumper socket.</li></ul>
+<aside class="callout"><strong>UNPLUGGED CHECK</strong><p>Check polarity and continuity of each intended ground connection. Check that 3V3-to-GND and 5V-to-GND are not sustained near-zero-ohm shorts. A brief continuity beep from charging capacitors is not a diagnosis; investigate uncertain readings before power-up.</p></aside>
+<p>Leave batteries and charging boards out of this build: the project has no completed battery power-path design. Add only one module per mission, with USB disconnected between changes.</p>
+<div class="checks"><strong>Checkpoint</strong>
+<label><input type="checkbox" data-key="power-3-0"><span>I can point to 3V3, GND, and the verified USB 5V rail.</span></label>
+<label><input type="checkbox" data-key="power-3-1"><span>The DAC VIN rating is confirmed, and no GPIO wire carries 5 V.</span></label>
+</div>
+</section>
+<section id="firmware"><p class="tag">03 / WAKE UP THE BRAIN</p><h2>Teach it the test tune.</h2><p class="intro">Start with only the ESP32 connected to USB. The hardware-test app lets you add modules gradually and see what is working.</p>
+<p>Install ESP-IDF v5.5 with ESP32-S3 support using Espressif&#x27;s Getting Started guide (linked on page 16). ESP-IDF builds and transfers the program. The commands below are for a Linux/macOS shell; on Windows use the ESP-IDF terminal and the menuconfig route below.</p>
+<pre><code># Skip cloning if you already have this repository.
+git clone https://github.com/willbearfruits/esp32-s3-supermini-kit.git
+cd esp32-s3-supermini-kit
+. ~/esp/esp-idf/export.sh  # change to your IDF install path
+cd firmware
+idf.py set-target esp32s3
+idf.py menuconfig</code></pre>
+<p>In menuconfig, open Kit firmware &gt; Application and select the hardware-test application (CONFIG_KIT_APP_TEST). Save and exit. Run set-target on a fresh setup only; it may reset an existing local configuration.</p>
+<pre><code>idf.py build
+idf.py flash monitor</code></pre>
+<p>The build needs internet access the first time to fetch components. If more than one board is connected, use idf.py -p YOUR_PORT flash monitor, replacing YOUR_PORT with the detected serial port. Exit the monitor with Ctrl+].</p>
+<aside class="callout"><strong>A SUCCESSFUL FIRST BOOT</strong><p>Look for the test-app message about a 440 Hz tone for 4 seconds, then mic only. No OLED and no mic data are expected right now. Unplug USB before attaching the display.</p></aside>
+<p>Board missing? Try another data cable and USB port. To enter download mode, hold BOOT, tap RESET, then release BOOT and flash again. If your board lacks RESET, hold BOOT while reconnecting USB, then release it. On Linux, follow Espressif&#x27;s serial-port permissions instructions if access is denied.</p>
+<div class="checks"><strong>Checkpoint</strong>
+<label><input type="checkbox" data-key="firmware-7-0"><span>The hardware-test firmware flashes and its serial log appears.</span></label>
+</div>
+</section>
+<section id="display"><p class="tag">04 / GIVE IT A FACE</p><h2>Hello, tiny screen.</h2><p class="intro">Disconnect USB. Read the four OLED labels carefully; their order varies between modules.</p>
+<figure class="diagram"><img src="assets/display.svg" alt="Functional connections only. SCL may be printed SCK on an I2C OLED; check the module type." loading="lazy"><figcaption>Functional connections only. SCL may be printed SCK on an I2C OLED; check the module type.</figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th scope="col">OLED label</th><th scope="col">Connect to</th></tr></thead><tbody><tr><td>VCC / VDD</td><td>ESP32 3V3, for a verified 3.3 V-compatible module</td></tr><tr><td>GND</td><td>ESP32 GND</td></tr><tr><td>SDA</td><td>GPIO12</td></tr><tr><td>SCL</td><td>GPIO13</td></tr></tbody></table></div>
+<p>Reconnect USB. The serial scan should report 0x3C and the screen should show the test display. The hardware-test app also retries at 0x3D; the main startup path and JAM expect 0x3C. Use a module configured for 0x3C for the finished build.</p>
+<aside class="callout"><strong>SCREEN STILL DARK?</strong><p>Unplug first. Check VCC/GND, then SDA/SCL, then the module&#x27;s I2C address. A seven-pin SPI display or an SH1106 board is not the specified SSD1306 module. If the image is upside down, Kit firmware &gt; Rotate the OLED 180 degrees controls its orientation.</p></aside>
+<p>I2C is a shared two-wire conversation: SDA carries data and SCL keeps time. Later sensors can share these same two signals. The audio wires on the next pages use a different bus called I2S.</p>
+<div class="checks"><strong>Checkpoint</strong>
+<label><input type="checkbox" data-key="display-4-0"><span>The screen lights up and the test display updates.</span></label>
+</div>
+</section>
+<section id="microphone"><p class="tag">05 / GIVE IT EARS</p><h2>Say hello. Watch it listen.</h2><p class="intro">Disconnect USB, then add the INMP441. Keep its small sound opening clear of tape, glue, and fingers.</p>
+<figure class="diagram"><img src="assets/microphone.svg" alt="The mic&#x27;s SCK is the bit clock on GPIO7. Its SD is data going into GPIO10." loading="lazy"><figcaption>The mic&#x27;s SCK is the bit clock on GPIO7. Its SD is data going into GPIO10.</figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th scope="col">INMP441 label</th><th scope="col">Connect to</th></tr></thead><tbody><tr><td>VDD</td><td>3V3</td></tr><tr><td>GND</td><td>GND</td></tr><tr><td>SCK</td><td>GPIO7</td></tr><tr><td>WS</td><td>GPIO8</td></tr><tr><td>SD</td><td>GPIO10</td></tr><tr><td>L/R</td><td>GND for this guide; do not leave floating</td></tr></tbody></table></div>
+<p>Reconnect USB. Wait for the four-second test-tone interval to finish, then speak or hum near the microphone. The level bar and waveform should respond. The serial diagnosis should settle on mic data OK.</p>
+<aside class="callout"><strong>TINY VICTORY</strong><p>The board can hear you even before an audio output is connected. If the firmware reports the RIGHT slot, L/R is high; the firmware supports that too. No data means check mic power, SD, SCK and WS with USB unplugged.</p></aside>
+<p>I2S sends sound as numbers. GPIO7 and GPIO8 provide shared timing; the microphone sends its numbers back on GPIO10. The DAC will receive outgoing numbers on a separate wire, GPIO9.</p>
+<div class="checks"><strong>Checkpoint</strong>
+<label><input type="checkbox" data-key="microphone-4-0"><span>My voice changes the level meter and the mic diagnosis is healthy.</span></label>
+</div>
+</section>
+<section id="dac"><p class="tag">06 / LET THE SOUND OUT</p><h2>Meet the purple sound card.</h2><p class="intro">Disconnect USB. The PCM5102A turns digital audio into a stereo line signal for an amplified listening device.</p>
+<figure class="diagram"><img src="assets/dac.svg" alt="The two SCK labels mean different things: mic SCK -&gt; GPIO7; DAC SCK -&gt; GND." loading="lazy"><figcaption>The two SCK labels mean different things: mic SCK -&gt; GPIO7; DAC SCK -&gt; GND.</figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th scope="col">DAC label</th><th scope="col">Connect to</th></tr></thead><tbody><tr><td>VIN</td><td>Verified USB 5V rail, only for the regulator-equipped board</td></tr><tr><td>GND</td><td>GND</td></tr><tr><td>BCK</td><td>GPIO7 (shared with mic SCK)</td></tr><tr><td>LCK / LRCK</td><td>GPIO8 (shared with mic WS)</td></tr><tr><td>DIN</td><td>GPIO9</td></tr><tr><td>SCK</td><td>GND; check whether the board already ties it low</td></tr></tbody></table></div>
+<p>Check the back-of-board configuration. For the documented purple revision: H1L / FLT = L, H2L / DEMP = L, H3L / XSMT = H, H4L / FMT = L. Confirm each pad&#x27;s function on your revision; bridge only the selected side, never H to L. Use a prepared board or get soldering help.</p>
+<aside class="callout"><strong>THIS JACK IS LINE-OUT</strong><p>Connect powered speakers, an audio-interface line input, or a separate headphone amplifier. Ordinary headphones and passive speakers need amplification. TI specifies line loads down to 1 kOhm; a headphone-shaped jack does not make this a headphone amp.</p></aside>
+<p>Start the listening device at low volume. Connect its line/AUX input, then power the kit. Listen for the four-second 440 Hz tone. After it ends, try a gentle hum; keep the speaker away from the mic to avoid feedback.</p>
+<div class="checks"><strong>Checkpoint</strong>
+<label><input type="checkbox" data-key="dac-4-0"><span>I hear the startup tone and can hear the mic afterward.</span></label>
+</div>
+</section>
+<section id="controls"><p class="tag">07 / ADD THE PLAYFUL BITS</p><h2>Twist. Tilt. Click.</h2><p class="intro">Disconnect USB. The joystick uses a breakout board; the bare EC11 needs an identified pinout and a soldered adapter or insulated harness.</p>
+<figure class="diagram"><img src="assets/controls.svg" alt="Logical EC11 contacts are shown, not their physical order. Mounting tabs are not signal pins." loading="lazy"><figcaption>Logical EC11 contacts are shown, not their physical order. Mounting tabs are not signal pins.</figcaption></figure>
+<div class="table-scroll"><table><thead><tr><th scope="col">Control contact</th><th scope="col">Connect to</th></tr></thead><tbody><tr><td>Joystick VCC / +5V marking</td><td>3V3 for this analog KY-023-style module; never 5 V here</td></tr><tr><td>Joystick GND / VRy / VRx / SW</td><td>GND / GPIO1 / GPIO2 / GPIO3, respectively</td></tr><tr><td>EC11 A / B / common C</td><td>GPIO4 / GPIO5 / GND, respectively</td></tr><tr><td>EC11 push switch, two contacts</td><td>One to GPIO6; the other to GND</td></tr></tbody></table></div>
+<p>Identify encoder A/B/common and the separate push switch from its drawing or an unplugged continuity test. Do not infer the pin order from this illustration. For an encoder breakout instead, map CLK, DT and SW to GPIO4, GPIO5 and GPIO6; power any onboard pull-ups from 3V3.</p>
+<p>Power up without touching the joystick so startup centering can work. Turning the encoder brings up the ENCODER test screen and changes its count. A tap changes effect; a half-second hold changes preset. If turning is reversed, unplug and exchange A/B.</p>
+<aside class="callout"><strong>SAVE THE JOYSTICK VICTORY FOR JAM</strong><p>The test app is mainly a mic/DAC/encoder check. Use JAM on page 13 to verify joystick navigation and click. The firmware rotates the joystick axes for the case mounting; do not swap VRx/VRy just to match the drawing&#x27;s appearance.</p></aside>
+<div class="checks"><strong>Checkpoint</strong>
+<label><input type="checkbox" data-key="controls-4-0"><span>Encoder turn and push both work; the joystick is powered from 3V3.</span></label>
+</div>
+</section>
+<section id="bench"><p class="tag">08 / THE OPEN-CASE SOUND CHECK</p><h2>Earn your first-sound badge.</h2><p class="intro">Keep everything on the bench. A working open build is much easier to assemble and troubleshoot than a mystery inside a closed box.</p>
+<div class="table-scroll"><table><thead><tr><th scope="col">Try this</th><th scope="col">You should get</th></tr></thead><tbody><tr><td>Restart the test app</td><td>A stable boot, then about 4 seconds of 440 Hz tone</td></tr><tr><td>Speak gently after the tone</td><td>A moving level meter and audible mic signal</td></tr><tr><td>Watch the serial diagnosis</td><td>mic data OK, or mic OK, RIGHT slot</td></tr><tr><td>Turn the encoder</td><td>ENCODER page; count changes consistently</td></tr><tr><td>Tap, then briefly hold the encoder</td><td>Effect changes; then preset changes</td></tr><tr><td>Leave the kit running for a few minutes</td><td>No repeated boot counter increments, dropouts or excess heat</td></tr></tbody></table></div>
+<aside class="callout"><strong>DO NOT CLOSE THE CASE YET</strong><p>One failed check is a useful clue. Unplug, inspect that stage, fix it, and repeat the check. The firmware&#x27;s no shorts between I2S pins message covers only selected signal pairs; it is not a power-rail safety test.</p></aside>
+<h3>Label future-you&#x27;s wires</h3>
+<ul><li>Label both ends with the signal name or GPIO number. Color is a helpful extra: use red for 3V3, orange for 5V, and black for GND if you have them.</li><li>Replace flaky temporary connections with fitted headers and insulated, strain-relieved wiring. Keep audio wires short and away from loose metal hardware.</li><li>Photograph your working wiring before moving it into the shell. Leave enough slack to open the case without pulling a connector off.</li><li>If you hear a squeal, lower the external volume and move the speaker away from the mic. This is acoustic feedback, not a challenge to sing louder.</li></ul>
+<div class="checks"><strong>Checkpoint</strong>
+<label><input type="checkbox" data-key="bench-4-0"><span>All the checks above pass with the case open.</span></label>
+<label><input type="checkbox" data-key="bench-4-1"><span>Both ends of each wire are labeled and the wiring is documented.</span></label>
+<label><input type="checkbox" data-key="bench-4-2"><span>USB is unplugged before I begin mechanical assembly.</span></label>
+</div>
+</section>
+<section id="case-prep"><p class="tag">09 / MAKE ITS LITTLE HOME</p><h2>Print. Measure. Dry-fit.</h2><p class="intro">The current shell is 100 x 98 x 24 mm. Its cradles model specific module sizes; a board with the same chip can still have a different outline.</p>
+<figure class="photo"><img src="../../enclosure/out/exploded.png" alt="Existing OpenSCAD exploded render from this repository. CAD preview, not proof of physical fit." loading="lazy"><figcaption>Existing OpenSCAD exploded render from this repository. CAD preview, not proof of physical fit.</figcaption></figure>
+<p>Use enclosure/out/shell.stl and lid.stl, or the combined print_bed.stl. The exports are already print-oriented: shell top face down, lid bottom face down. Inspect the sliced layers and small bosses before printing.</p>
+<p>The design targets a 0.8 mm nozzle, 2.4 mm walls, and 0.32-0.40 mm layers. Start with 3 walls and enough solid layers for 2.4 mm thickness (6 at 0.40 mm or 8 at 0.32 mm), plus 20-30% infill. The CAD intends support-free printing; confirm in your slicer.</p>
+<div class="table-scroll"><table><thead><tr><th scope="col">Case hardware</th><th scope="col">Quantity / starting specification</th></tr></thead><tbody><tr><td>Heat-set inserts + lid screws</td><td>4 M3 inserts (OD about 4.6 mm, length 4-5.7 mm); 4 M3 x 10 mm screws</td></tr><tr><td>OLED / joystick screws</td><td>4 M2 x 4 mm / 4 M2 x 6 mm; verify actual engagement</td></tr><tr><td>Encoder hardware</td><td>Matching M7 nut/washer and 6 mm shaft knob</td></tr><tr><td>Mic gasket + wire restraint</td><td>One foam/silicone ring; small ties or insulated restraint</td></tr></tbody></table></div>
+<aside class="callout"><strong>FIT FIRST, HEAT SECOND</strong><p>Try every unpowered board in its cradle, including headers, plug bodies and wire bends. Fit may require CAD changes. Install inserts in the empty shell using your insert/filament supplier&#x27;s method; practice on scrap and let them cool. Check screw length so tips cannot bottom out, pierce plastic, or hit a board.</p></aside>
+<div class="checks"><strong>Checkpoint</strong>
+<label><input type="checkbox" data-key="case-prep-4-0"><span>The dry-fit works and every screw is the right length.</span></label>
+</div>
+</section>
+<section id="case-assembly"><p class="tag">10 / EVERY PART GETS A PLACE</p><h2>Build the shell sandwich.</h2><p class="intro">USB stays unplugged. Use the drawing as a placement key, then follow the actual mounting features in your printed parts.</p>
+<figure class="diagram"><img src="assets/placement.svg" alt="Conceptual top-view placement, not a drill template. Both panels use the same front-edge reference." loading="lazy"><figcaption>Conceptual top-view placement, not a drill template. Both panels use the same front-edge reference.</figcaption></figure>
+<ol><li>Top shell: fasten the OLED behind its window with four M2 screws. Use light pressure; do not load or pinch the glass.</li><li>Seat the round mic beside the OLED with its real acoustic port aligned to the grille. Place the gasket around the port; do not cover the opening or force the PCB into the collar.</li><li>Fit the EC11 through its panel opening, secure the matching washer/nut, and add the knob. Keep enough clearance for the push action. Mount the joystick on its four bosses and check full travel.</li><li>Lid: seat the ESP32 with USB-C at the front edge. Seat the DAC on the right with its jack facing that same front edge, beside USB. Secure the optional IMU in its own cradle if fitted.</li><li>Reconnect the labeled harness. Insulate exposed joints, restrain wires, and keep the seam, screw bosses, antenna area and mic port clear. Check connector and pin clearance with the halves gently together.</li><li>With the case still open on a nonconductive surface, repeat the page 10 sound check. Unplug, align the lip, and close with four lid screws, lightly and evenly. If it resists, reopen and find the obstruction.</li></ol>
+<div class="checks"><strong>Checkpoint</strong>
+<label><input type="checkbox" data-key="case-assembly-1-0"><span>No wire is pinched; USB/audio plugs seat fully; the knob clicks and stick moves.</span></label>
+<label><input type="checkbox" data-key="case-assembly-1-1"><span>After closing, the screen, startup tone, microphone and encoder still work.</span></label>
+</div>
+</section>
+<section id="jam"><p class="tag">11 / MAKE YOUR FIRST BEAT</p><h2>Your tiny band is ready.</h2><p class="intro">Switch to JAM when the hardware checks pass. It is the case-friendly sequencer: six channels, a sampler, and a grid of musical possibilities.</p>
+<figure class="photo"><img src="../../images/jam/pattern-drums.png" alt="Actual JAM drum-grid render from the repository. The grid contains two bars of 16 steps." loading="lazy"><figcaption>Actual JAM drum-grid render from the repository. The grid contains two bars of 16 steps.</figcaption></figure>
+<p>Exit the serial monitor with Ctrl+]. In your activated ESP-IDF shell, from the repository root, run the following. The first setup on page 5 must have created firmware/sdkconfig. On Windows, select JAM in menuconfig, then build and flash instead.</p>
+<pre><code>tools/app.sh jam
+cd firmware
+idf.py flash monitor</code></pre>
+<div class="table-scroll"><table><thead><tr><th scope="col">Gesture in JAM</th><th scope="col">What happens</th></tr></thead><tbody><tr><td>Turn encoder / flick joystick</td><td>Move the pattern cursor</td></tr><tr><td>Tap encoder</td><td>Toggle the selected grid cell</td></tr><tr><td>Hold encoder about 0.5 seconds</td><td>Next page: PATTERN, MIX, SONG, SETUP</td></tr><tr><td>Push encoder and turn</td><td>Change channel</td></tr><tr><td>Click joystick</td><td>Enter/cycle perform mode; behavior depends on channel</td></tr><tr><td>Hold encoder 3 seconds</td><td>Clear the current channel - use deliberately</td></tr></tbody></table></div>
+<aside class="callout"><strong>THE FIRST-BEAT CHALLENGE</strong><p>Select DRUMS on PATTERN. Put kicks on steps 1, 5, 9 and 13 of the first bar; add snare on 5 and 13 and hats on odd steps. Repeat in the second bar. Then switch to BASS and add three notes. Hear that? You built the band.</p></aside>
+<p>Verify the joystick moves the cursor and its click changes perform mode. JAM autosaves about two seconds after the last edit; wait a few extra seconds before unplugging. Try a sample next: select MIC and tap to record up to two seconds, then select SAMPLE. Live mic is audible only while MIC is selected.</p>
+<div class="checks"><strong>Checkpoint</strong>
+<label><input type="checkbox" data-key="jam-5-0"><span>My beat plays, the joystick works, and my pattern returns after a restart.</span></label>
+</div>
+</section>
+<section id="extras"><p class="tag">BONUS / OPTIONAL SIDE QUESTS</p><h2>Add extras after the win.</h2><p class="intro">These are independent extensions. The seven-part case has an IMU cradle; it has no designed mounting for the speaker, amplifier, or distance sensor.</p>
+<h3>Motion and distance for the looper</h3>
+<div class="table-scroll"><table><thead><tr><th scope="col">Module</th><th scope="col">Connections / expected I2C address</th></tr></thead><tbody><tr><td>MPU6050 / GY-521</td><td>3.3 V-compatible VCC; GND; SDA -&gt; GPIO12; SCL -&gt; GPIO13. AD0 low for 0x68; verify board default.</td></tr><tr><td>VL53L0X breakout</td><td>Verified 3.3 V-compatible supply and I2C; GND; SDA -&gt; GPIO12; SCL -&gt; GPIO13. Address 0x29. Leave XSHUT/INT at the module&#x27;s documented defaults.</td></tr></tbody></table></div>
+<p>These share the OLED&#x27;s I2C wires. Check breakout supply requirements and pull-ups before connecting; pull-ups must go to 3V3. If none of the boards provide them, add one 4.7 kOhm pull-up from SDA to 3V3 and one from SCL to 3V3. Do not add a new pair blindly to every board.</p>
+<p>Use tools/app.sh looper, then flash, to try motion and distance expression. The driver implements VL53L0X, not VL53L1X. An I2C scan finds presence; testing tilt/distance in the looper verifies actual behavior.</p>
+<h3>MAX98357A speaker branch: bench extension</h3>
+<div class="table-scroll"><table><thead><tr><th scope="col">Amplifier pin</th><th scope="col">Connection</th></tr></thead><tbody><tr><td>BCLK / LRC / DIN</td><td>GPIO7 / GPIO8 / GPIO9 (shared with the DAC)</td></tr><tr><td>SD / GND / GAIN</td><td>GPIO11 / common GND / floating, if supported by your board</td></tr><tr><td>VIN</td><td>Verified regulated supply with enough current for the speaker load</td></tr><tr><td>Speaker + and -</td><td>A suitable 4 or 8 ohm speaker across the two outputs</td></tr></tbody></table></div>
+<aside class="callout"><strong>SPEAKER OUTPUT IS NOT GROUND</strong><p>Neither speaker terminal goes to GND or to the DAC jack. Do not load the SuperMini&#x27;s small 3V3 regulator with the amp. For a separate rated amp supply, join grounds but do not tie its positive rail to USB 5V without a designed power path.</p></aside>
+<p>Current firmware enables the amp while the GPIO6 encoder switch is held, unless Kit firmware &gt; Keep the speaker amp on all the time is enabled. BOOT&#x27;s software button alias does not enable this hardware gate. The PCM5102A line-out is independent of that gate. Speaker power distribution and mounting need separate validation before boxing this extension.</p>
+</section>
+<section id="rescue"><p class="tag">RESCUE / EVERY BUILD HAS A PLOT TWIST</p><h2>One clue at a time.</h2><p class="intro">Unplug before touching wiring. Return to the hardware-test app for diagnosis; reconnect one stage at a time.</p>
+<div class="table-scroll"><table><thead><tr><th scope="col">What you see or hear</th><th scope="col">Try this first</th></tr></thead><tbody><tr><td>No serial device / flashing fails</td><td>Try a known data cable and direct USB port; close other serial monitors. Enter BOOT download mode (page 5). Check port permissions.</td></tr><tr><td>Screen dark; firmware running</td><td>Check OLED VCC/GND, then GPIO12 SDA and GPIO13 SCL. Look for 0x3C. Test app can retry 0x3D; JAM expects 0x3C.</td></tr><tr><td>Tone missing; screen works</td><td>Check external AUX/line input and volume. Unplug; check DAC VIN, BCK=7, LCK=8, DIN=9, SCK=GND and XSMT=H.</td></tr><tr><td>Tone works; mic silent</td><td>Check INMP441 VDD=3V3, SD=10, SCK=7, WS=8 and L/R tied low. Read the test diagnosis; inspect for a blocked mic port.</td></tr><tr><td>RIGHT slot message</td><td>Mic L/R is high. Supported by the firmware; not a fault if the level meter responds.</td></tr><tr><td>Intermittent / line stuck</td><td>Inspect fitted headers, shared grounds and loose jumpers. Reconnect with power off. Keep signal wiring short.</td></tr><tr><td>Repeated boots / BROWNOUT</td><td>Disconnect USB immediately if anything gets hot. Remove the newest module; check shorts, polarity, cable and power budget. Retry the known-good stage.</td></tr><tr><td>Encoder reversed / skips</td><td>Verify common=GND and A/B=4/5. Exchange A/B if reversed. For multiple steps per detent, check Kit firmware &gt; Encoder counts per detent.</td></tr><tr><td>Joystick odd / no click</td><td>Reboot with stick centered. Check VRy=1, VRx=2, SW=3 and 3V3 power. Firmware rotation is intentional for the case.</td></tr><tr><td>Squeal / distortion</td><td>Lower listening volume; move speaker away from mic. Check input mode and mic gain. Do not use the DAC to drive passive speakers or headphones directly.</td></tr><tr><td>Line-out works; optional speaker silent</td><td>Check amp supply and SD=11. It is normally enabled only while GPIO6 is held; see page 14.</td></tr><tr><td>Works open, fails closed</td><td>Unplug and reopen. Look for a pinched wire, a loose connector, screw contact, blocked mic port, or knob pressed against the panel.</td></tr></tbody></table></div>
+<aside class="callout"><strong>ASK FOR HELP WITH A GOOD CLUE</strong><p>Share clear photos of both sides of each board, your GPIO-to-label wiring list, firmware application, and the relevant serial log. Include the exact module revision and what passed before the failure.</p></aside>
+</section>
+<section id="reference"><p class="tag">WORKBENCH CARD / KEEP THIS PAGE HANDY</p><h2>Your pocket pin map.</h2><p class="intro">Signal labels, not physical pin order. Unplug before changing connections. Firmware source of truth: firmware/main/pins.h.</p>
+<div class="table-scroll"><table><thead><tr><th scope="col">ESP32</th><th scope="col">Destination</th></tr></thead><tbody><tr><td>GPIO1 / GPIO2 / GPIO3</td><td>Joystick VRy / VRx / SW</td></tr><tr><td>GPIO4 / GPIO5 / GPIO6</td><td>Encoder A / B / push switch; common and other switch contact -&gt; GND</td></tr><tr><td>GPIO7</td><td>Mic SCK + DAC BCK (+ optional amp BCLK)</td></tr><tr><td>GPIO8</td><td>Mic WS + DAC LCK (+ optional amp LRC)</td></tr><tr><td>GPIO9</td><td>DAC DIN (+ optional amp DIN)</td></tr><tr><td>GPIO10</td><td>Mic SD</td></tr><tr><td>GPIO11</td><td>Optional amp SD</td></tr><tr><td>GPIO12 / GPIO13</td><td>OLED + optional sensors SDA / SCL</td></tr><tr><td>3V3 / GND</td><td>Verified 3.3 V modules / all module grounds</td></tr><tr><td>Verified USB 5V rail</td><td>VIN of verified regulator-equipped purple DAC only</td></tr></tbody></table></div>
+<aside class="callout"><strong>THE EASY-TO-MISS CONNECTIONS</strong><p>Mic L/R -&gt; GND. DAC SCK -&gt; GND. Purple DAC straps: FLT=L, DEMP=L, XSMT=H, FMT=L (confirm your revision). Never put 5 V on GPIO. Leave USB GPIO19/20 and other boot/strapping pins alone.</p></aside>
+<h3>A few words decoded</h3>
+<p>GPIO: a programmable signal pin. DAC: digital sound to analog audio. I2S: digital audio bus. I2C: two-wire display/sensor bus. VIN/VCC/VDD: power labels whose voltage depends on the board. Continuity: a meter check for an electrical connection. Dry-fit: assemble without power or permanent fastening.</p>
+<h3>Sources and build notes</h3>
+<p>Prepared from repository revision d52a80d: firmware/main/pins.h, main.c, app_test.c, audio.c, input.c and Kconfig.projbuild; README.md; parts/minimal-kit.md; enclosure/enclosure.scad and enclosure/README.md. This guide documents the prototype; no physical assembly or electrical test was performed for this edition.</p>
+<ul class="links"><li><a href="https://github.com/willbearfruits/esp32-s3-supermini-kit">Project and firmware</a></li><li><a href="https://docs.espressif.com/projects/esp-idf/en/v5.5/esp32s3/get-started/index.html">Espressif: install ESP-IDF v5.5 for ESP32-S3</a></li><li><a href="https://www.ti.com/product/PCM5102A">TI: PCM5102A line-output specification</a></li><li><a href="https://learn.adafruit.com/adafruit-max98357-i2s-class-d-mono-amp/pinouts">Adafruit: MAX98357A breakout pinouts (match your board)</a></li></ul>
+<p>Illustrations are editable SVGs with PNG companions. Case and JAM images come from this repository. Rebuild instructions and the browser checklist are beside the guide in docs/assembly/. Documentation and new artwork: MIT, as in the repository license.</p>
+</section></main></div><footer>Prototype edition / September 2026. Checklist stays in this browser when local storage is available.<p class="actions"><button id="reset" type="button">Reset my checklist</button></p></footer><script>
+const boxes = [...document.querySelectorAll('input[data-key]')];
+const store = 'supermini-assembly-v1:';
+for (const box of boxes) {
+  try { box.checked = localStorage.getItem(store + box.dataset.key) === '1'; } catch (_) {}
+  box.addEventListener('change', () => {
+    try { localStorage.setItem(store + box.dataset.key, box.checked ? '1' : '0'); } catch (_) {}
+    progress();
+  });
+}
+function progress() {
+  document.getElementById('progress').textContent = boxes.filter(x => x.checked).length + ' / ' + boxes.length + ' checkpoints';
+}
+document.getElementById('reset').addEventListener('click', () => {
+  if (!confirm('Clear your assembly checklist progress?')) return;
+  for (const box of boxes) { box.checked = false; try { localStorage.removeItem(store + box.dataset.key); } catch (_) {} }
+  progress();
+});
+progress();
+</script></body></html>

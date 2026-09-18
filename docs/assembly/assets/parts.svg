@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="330" viewBox="0 0 900 330" role="img" aria-labelledby="title desc">
+<title id="title">Meet the seven modules</title><desc id="desc">Simplified module illustrations, not a pinout or dimension reference.</desc>
+<rect x="0" y="0" width="900" height="330" rx="20" fill="#FAF8F0" stroke="none" stroke-width="2"/>
+<rect x="25" y="15" width="202" height="143" rx="12" fill="white" stroke="#DAE4DF" stroke-width="1"/>
+<rect x="100" y="33" width="52" height="62" rx="5" fill="#316CBA" stroke="none" stroke-width="2"/>
+<rect x="108" y="41" width="36" height="31" rx="2" fill="#D7DCDA" stroke="none" stroke-width="2"/>
+<rect x="115" y="87" width="22" height="12" rx="3" fill="#19393C" stroke="none" stroke-width="2"/>
+<text x="126" y="126" font-family="Liberation Sans, Arial, sans-serif" font-size="18" font-weight="bold" fill="#19393C" text-anchor="middle">ESP32-S3</text>
+<text x="126" y="148" font-family="Liberation Sans, Arial, sans-serif" font-size="16" font-weight="normal" fill="#53696B" text-anchor="middle">the brain</text>
+<rect x="249" y="15" width="202" height="143" rx="12" fill="white" stroke="#DAE4DF" stroke-width="1"/>
+<rect x="305" y="40" width="90" height="48" rx="4" fill="#7154A1" stroke="none" stroke-width="2"/>
+<rect x="365" y="49" width="36" height="30" rx="2" fill="#19393C" stroke="none" stroke-width="2"/>
+<circle cx="400" cy="64" r="9" fill="#F8C966" stroke="none" stroke-width="2"/>
+<text x="350" y="126" font-family="Liberation Sans, Arial, sans-serif" font-size="18" font-weight="bold" fill="#19393C" text-anchor="middle">PCM5102A</text>
+<text x="350" y="148" font-family="Liberation Sans, Arial, sans-serif" font-size="16" font-weight="normal" fill="#53696B" text-anchor="middle">line-out</text>
+<rect x="473" y="15" width="202" height="143" rx="12" fill="white" stroke="#DAE4DF" stroke-width="1"/>
+<rect x="537" y="35" width="74" height="61" rx="3" fill="#007D79" stroke="none" stroke-width="2"/>
+<circle cx="574" cy="64" r="26" fill="#19393C" stroke="none" stroke-width="2"/>
+<circle cx="570" cy="59" r="17" fill="#426467" stroke="none" stroke-width="2"/>
+<text x="574" y="126" font-family="Liberation Sans, Arial, sans-serif" font-size="18" font-weight="bold" fill="#19393C" text-anchor="middle">JOYSTICK</text>
+<text x="574" y="148" font-family="Liberation Sans, Arial, sans-serif" font-size="16" font-weight="normal" fill="#53696B" text-anchor="middle">tilt + click</text>
+<rect x="697" y="15" width="202" height="143" rx="12" fill="white" stroke="#DAE4DF" stroke-width="1"/>
+<rect x="776" y="54" width="44" height="39" rx="3" fill="#A9B6B6" stroke="#19393C" stroke-width="2"/>
+<rect x="789" y="30" width="18" height="37" rx="2" fill="#D4DBD8" stroke="#19393C" stroke-width="2"/>
+<line x1="781" y1="94" x2="781" y2="103" stroke="#19393C" stroke-width="3" stroke-linecap="round"/>
+<line x1="798" y1="94" x2="798" y2="103" stroke="#19393C" stroke-width="3" stroke-linecap="round"/>
+<line x1="815" y1="94" x2="815" y2="103" stroke="#19393C" stroke-width="3" stroke-linecap="round"/>
+<text x="798" y="126" font-family="Liberation Sans, Arial, sans-serif" font-size="18" font-weight="bold" fill="#19393C" text-anchor="middle">EC11</text>
+<text x="798" y="148" font-family="Liberation Sans, Arial, sans-serif" font-size="16" font-weight="normal" fill="#53696B" text-anchor="middle">turn + click</text>
+<rect x="137" y="174" width="202" height="143" rx="12" fill="white" stroke="#DAE4DF" stroke-width="1"/>
+<circle cx="238" cy="223" r="32" fill="#7154A1" stroke="none" stroke-width="2"/>
+<rect x="226" y="214" width="24" height="18" rx="2" fill="#DDE2DF" stroke="none" stroke-width="2"/>
+<circle cx="213" cy="243" r="3" fill="#F8C966" stroke="none" stroke-width="2"/>
+<circle cx="223" cy="243" r="3" fill="#F8C966" stroke="none" stroke-width="2"/>
+<circle cx="233" cy="243" r="3" fill="#F8C966" stroke="none" stroke-width="2"/>
+<circle cx="243" cy="243" r="3" fill="#F8C966" stroke="none" stroke-width="2"/>
+<circle cx="253" cy="243" r="3" fill="#F8C966" stroke="none" stroke-width="2"/>
+<circle cx="263" cy="243" r="3" fill="#F8C966" stroke="none" stroke-width="2"/>
+<text x="238" y="285" font-family="Liberation Sans, Arial, sans-serif" font-size="18" font-weight="bold" fill="#19393C" text-anchor="middle">INMP441</text>
+<text x="238" y="307" font-family="Liberation Sans, Arial, sans-serif" font-size="16" font-weight="normal" fill="#53696B" text-anchor="middle">microphone</text>
+<rect x="361" y="174" width="202" height="143" rx="12" fill="white" stroke="#DAE4DF" stroke-width="1"/>
+<rect x="418" y="193" width="88" height="60" rx="4" fill="#316CBA" stroke="none" stroke-width="2"/>
+<rect x="424" y="201" width="76" height="38" rx="3" fill="#19393C" stroke="none" stroke-width="2"/>
+<text x="462" y="225" font-family="Liberation Sans, Arial, sans-serif" font-size="15" font-weight="bold" fill="#DFF2E9" text-anchor="middle">HELLO!</text>
+<text x="462" y="285" font-family="Liberation Sans, Arial, sans-serif" font-size="18" font-weight="bold" fill="#19393C" text-anchor="middle">SSD1306</text>
+<text x="462" y="307" font-family="Liberation Sans, Arial, sans-serif" font-size="16" font-weight="normal" fill="#53696B" text-anchor="middle">the screen</text>
+<rect x="585" y="174" width="202" height="143" rx="12" fill="white" stroke="#DAE4DF" stroke-width="1"/>
+<rect x="658" y="192" width="56" height="62" rx="4" fill="#316CBA" stroke="none" stroke-width="2"/>
+<rect x="676" y="214" width="20" height="20" rx="2" fill="#19393C" stroke="none" stroke-width="2"/>
+<circle cx="686" cy="200" r="4" fill="#FAF8F0" stroke="none" stroke-width="2"/>
+<text x="686" y="285" font-family="Liberation Sans, Arial, sans-serif" font-size="18" font-weight="bold" fill="#19393C" text-anchor="middle">MPU6050</text>
+<text x="686" y="307" font-family="Liberation Sans, Arial, sans-serif" font-size="16" font-weight="normal" fill="#53696B" text-anchor="middle">optional motion</text>
+</svg>

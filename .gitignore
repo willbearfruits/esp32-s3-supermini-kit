@@ -20,3 +20,4 @@ firmware/managed_components/
 # LibreOffice lock files
 .~lock.*#
 docs/pinmap.html
+release/

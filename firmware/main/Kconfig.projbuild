@@ -2,7 +2,7 @@ menu "Kit firmware"
 
     choice KIT_APP
         prompt "Application"
-        default KIT_APP_LOOPER
+        default KIT_APP_JAM
         help
             Which program the board runs. Both share the audio engine, voice
             tracker, OLED driver and self-test.

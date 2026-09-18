@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="392" viewBox="0 0 900 392" role="img" aria-labelledby="title desc">
+<title id="title">PCM5102A wiring</title><desc id="desc">VIN requires a verified 5V-compatible regulator-equipped board. SCK is grounded, unlike the mic SCK.</desc>
+<rect x="0" y="0" width="900" height="392" rx="20" fill="#FAF8F0" stroke="none" stroke-width="2"/>
+<rect x="24" y="24" width="245" height="308" rx="15" fill="#19393C" stroke="none" stroke-width="2"/>
+<rect x="630" y="24" width="246" height="308" rx="15" fill="#7154A1" stroke="none" stroke-width="2"/>
+<text x="47" y="57" font-family="Liberation Sans, Arial, sans-serif" font-size="22" font-weight="bold" fill="white" text-anchor="start">ESP32-S3 / rails</text>
+<text x="654" y="57" font-family="Liberation Sans, Arial, sans-serif" font-size="22" font-weight="bold" fill="white" text-anchor="start">PCM5102A DAC</text>
+<text x="48" y="99" font-family="Liberation Sans, Arial, sans-serif" font-size="21" font-weight="bold" fill="white" text-anchor="start">USB 5V*</text>
+<text x="655" y="99" font-family="Liberation Sans, Arial, sans-serif" font-size="21" font-weight="bold" fill="white" text-anchor="start">VIN*</text>
+<line x1="268" y1="93" x2="630" y2="93" stroke="#D56B30" stroke-width="4" stroke-linecap="round"/>
+<circle cx="269" cy="93" r="6" fill="#D56B30" stroke="none" stroke-width="2"/>
+<circle cx="630" cy="93" r="6" fill="#D56B30" stroke="none" stroke-width="2"/>
+<text x="48" y="141" font-family="Liberation Sans, Arial, sans-serif" font-size="21" font-weight="bold" fill="white" text-anchor="start">GND</text>
+<text x="655" y="141" font-family="Liberation Sans, Arial, sans-serif" font-size="21" font-weight="bold" fill="white" text-anchor="start">GND</text>
+<line x1="268" y1="135" x2="630" y2="135" stroke="#19393C" stroke-width="4" stroke-linecap="round"/>
+<circle cx="269" cy="135" r="6" fill="#19393C" stroke="none" stroke-width="2"/>
+<circle cx="630" cy="135" r="6" fill="#19393C" stroke="none" stroke-width="2"/>
+<text x="48" y="183" font-family="Liberation Sans, Arial, sans-serif" font-size="21" font-weight="bold" fill="white" text-anchor="start">GPIO7</text>
+<text x="655" y="183" font-family="Liberation Sans, Arial, sans-serif" font-size="21" font-weight="bold" fill="white" text-anchor="start">BCK</text>
+<line x1="268" y1="177" x2="630" y2="177" stroke="#D56B30" stroke-width="4" stroke-linecap="round"/>
+<circle cx="269" cy="177" r="6" fill="#D56B30" stroke="none" stroke-width="2"/>
+<circle cx="630" cy="177" r="6" fill="#D56B30" stroke="none" stroke-width="2"/>
+<rect x="363" y="164" width="172" height="26" rx="8" fill="#FAF8F0" stroke="none" stroke-width="2"/>
+<text x="449" y="183" font-family="Liberation Sans, Arial, sans-serif" font-size="16" font-weight="bold" fill="#19393C" text-anchor="middle">signal: GPIO7</text>
+<text x="48" y="225" font-family="Liberation Sans, Arial, sans-serif" font-size="21" font-weight="bold" fill="white" text-anchor="start">GPIO8</text>
+<text x="655" y="225" font-family="Liberation Sans, Arial, sans-serif" font-size="21" font-weight="bold" fill="white" text-anchor="start">LCK / LRCK</text>
+<line x1="268" y1="219" x2="630" y2="219" stroke="#316CBA" stroke-width="4" stroke-linecap="round"/>
+<circle cx="269" cy="219" r="6" fill="#316CBA" stroke="none" stroke-width="2"/>
+<circle cx="630" cy="219" r="6" fill="#316CBA" stroke="none" stroke-width="2"/>
+<rect x="363" y="206" width="172" height="26" rx="8" fill="#FAF8F0" stroke="none" stroke-width="2"/>
+<text x="449" y="225" font-family="Liberation Sans, Arial, sans-serif" font-size="16" font-weight="bold" fill="#19393C" text-anchor="middle">signal: GPIO8</text>
+<text x="48" y="267" font-family="Liberation Sans, Arial, sans-serif" font-size="21" font-weight="bold" fill="white" text-anchor="start">GPIO9</text>
+<text x="655" y="267" font-family="Liberation Sans, Arial, sans-serif" font-size="21" font-weight="bold" fill="white" text-anchor="start">DIN</text>
+<line x1="268" y1="261" x2="630" y2="261" stroke="#007D79" stroke-width="4" stroke-linecap="round"/>
+<circle cx="269" cy="261" r="6" fill="#007D79" stroke="none" stroke-width="2"/>
+<circle cx="630" cy="261" r="6" fill="#007D79" stroke="none" stroke-width="2"/>
+<rect x="363" y="248" width="172" height="26" rx="8" fill="#FAF8F0" stroke="none" stroke-width="2"/>
+<text x="449" y="267" font-family="Liberation Sans, Arial, sans-serif" font-size="16" font-weight="bold" fill="#19393C" text-anchor="middle">signal: GPIO9</text>
+<text x="48" y="309" font-family="Liberation Sans, Arial, sans-serif" font-size="21" font-weight="bold" fill="white" text-anchor="start">GND</text>
+<text x="655" y="309" font-family="Liberation Sans, Arial, sans-serif" font-size="21" font-weight="bold" fill="white" text-anchor="start">SCK</text>
+<line x1="268" y1="303" x2="630" y2="303" stroke="#19393C" stroke-width="4" stroke-linecap="round"/>
+<circle cx="269" cy="303" r="6" fill="#19393C" stroke="none" stroke-width="2"/>
+<circle cx="630" cy="303" r="6" fill="#19393C" stroke="none" stroke-width="2"/>
+<text x="450" y="377" font-family="Liberation Sans, Arial, sans-serif" font-size="17" font-weight="normal" fill="#53696B" text-anchor="middle">*VIN: verified 5V regulator-equipped board only. Match labels, not pin positions.</text>
+</svg>

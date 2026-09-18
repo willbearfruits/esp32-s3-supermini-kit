@@ -1,0 +1,195 @@
+{
+  "title": "Make a little noise.",
+  "subtitle": "The friendly ESP32-S3 SuperMini assembly guide",
+  "edition": "Prototype edition / September 2026",
+  "pages": [
+    {
+      "id": "hello", "tag": "LET'S BUILD A MUSIC MACHINE", "title": "Make a little noise.",
+      "intro": "A microphone, a tiny screen, two playful controls, and a whole lot of sound. Build your kit one small win at a time.",
+      "diagram": "hero", "caption": "Illustrated layout of the current case. USB-C and line-out exit the front edge.",
+      "blocks": [
+        {"type": "callout", "label": "YOUR FINISH LINE", "text": "A USB-powered instrument that hears your voice and plays through powered speakers, an audio interface, or a separate headphone amp."},
+        {"type": "p", "text": "This is a guide to the current wired prototype. The socketed carrier PCB is not finished. Some parts need soldered headers or prepared leads, and the printed case must be checked against your exact boards."},
+        {"type": "p", "text": "Follow the numbered missions, tick the checkpoints, and keep the case open until the electronics pass. First electronics build? Invite an experienced maker for the soldering and power checks."},
+        {"type": "p", "text": "Inside: a parts field guide, labeled wiring diagrams, firmware steps, case assembly, a first-beat challenge, and a rescue page. All wiring illustrations use signal names, not physical pin positions."}
+      ]
+    },
+    {
+      "id": "start", "tag": "00 / CHOOSE YOUR ADVENTURE", "title": "Small steps. Happy beeps.",
+      "intro": "Work on a clear, nonconductive table. Give yourself an unhurried afternoon for the electronics, plus printing and software setup time.",
+      "blocks": [
+        {"type": "table", "headers": ["Mission", "Your small win", "Page"], "rows": [["Prepare", "Identify every module and power pin", "3-4"], ["Wake up the brain", "Flash the hardware-test app", "5"], ["Add the senses", "Screen on; mic responding", "6-7"], ["Make sound", "Wire the DAC and controls; pass the bench test", "8-10"], ["Give it a home", "Dry-fit, mount, route, close", "11-12"], ["Play", "Make a beat in JAM", "13"]]},
+        {"type": "heading", "text": "Put these within reach"},
+        {"type": "bullets", "items": ["A computer, USB-C data cable, and powered speaker with AUX/line input (or an audio interface / headphone amplifier). A charge-only cable cannot flash the board.", "Short jumper wires with ends that fit your headers; a breadboard or insulated distribution board for shared connections. Check whether breadboard power rails are split.", "A multimeter, small screwdrivers, tape labels, wire cutters, and a ruler or calipers. Use insulated wire and strain relief for the final harness.", "For unfinished headers, DAC straps, or the bare EC11: a soldering iron, stand, solder, ventilation, and heat-shrink. Get hands-on help if these are new to you."]},
+        {"type": "callout", "label": "THE ONE HABIT THAT SAVES BOARDS", "text": "Unplug USB and every other power source before adding, moving, soldering, or checking continuity on a wire. Power up only after checking the new connections."},
+        {"type": "p", "text": "Solderless means the connections are already prepared: headers fitted, DAC straps set, and the encoder on an adapter or harness. Loose pins pushed through bare holes are not reliable electrical joints."},
+        {"type": "check", "items": ["I have a data cable and a suitable line-level listening device.", "I know which parts need soldering or prepared leads."]}
+      ]
+    },
+    {
+      "id": "parts", "tag": "01 / MEET THE BAND", "title": "Seven little teammates.",
+      "intro": "Match the printed labels and the exact board version. Color and shape are clues, never proof of a pinout.",
+      "diagram": "parts", "caption": "Simplified identification drawings; not to scale and not a footprint or pin-order reference.",
+      "blocks": [
+        {"type": "table", "headers": ["Qty", "Part", "Check before wiring"], "rows": [["1", "ESP32-S3 SuperMini", "ESP32-S3FH4R2; 4 MB flash, 2 MB PSRAM; USB-C"], ["1", "PCM5102A DAC", "Purple jack board; verify VIN rating and all four straps"], ["1", "KY-023-style joystick", "Board with fitted pins and cap; VRx, VRy, SW"], ["1", "Bare EC11 encoder", "Push switch, matching nut/washer/knob; prepared leads"], ["1", "INMP441 microphone", "Round six-pin board; confirm actual chip and pin labels"], ["1", "SSD1306 OLED", "0.96-inch, 128 x 64, four-pin I2C version"], ["1", "MPU6050 / GY-521", "Motion sensor; optional for first sound and JAM"]]},
+        {"type": "p", "text": "Also gather wiring, the USB data cable, and a line-out cable. Case hardware is listed on page 11. The MAX98357A speaker amp and VL53L0X distance sensor are optional extras (page 14), not part of this seven-part list."},
+        {"type": "callout", "label": "LOOK TWICE, PLUG ONCE", "text": "Some OLEDs swap VCC and GND. Some six-pin microphones use another chip. Seller listings are not verified kit specifications. If a pin or board revision is unclear, identify it before powering it."},
+        {"type": "check", "items": ["My modules match this list, and their power pins are readable."]}
+      ]
+    },
+    {
+      "id": "power", "tag": "02 / POWER WITHOUT SURPRISES", "title": "Two rails. One ground.",
+      "intro": "A rail is a shared power connection. GND is the common reference. GPIO numbers identify signals on the ESP32, not the position of a header pin.",
+      "diagram": "power", "caption": "USB powers the ESP32. Use its labeled rails only after checking your board's power path.",
+      "blocks": [
+        {"type": "bullets", "items": ["Use USB-only power for this build. Identify the SuperMini's labeled 3V3, GND, and USB 5V/VBUS pins from the exact board documentation. Do not count header positions from a generic photo.", "Use 3.3 V for the INMP441, joystick, and a verified 3.3 V-compatible OLED. Sensor add-ons must also keep SDA/SCL and all GPIO signals at 3.3 V.", "The documented purple DAC board uses 5 V at VIN through its onboard regulator. Confirm this for your revision before connecting it. Never put 5 V on a bare PCM5102A chip, a 3V3 pin, or an ESP32 GPIO.", "Join every module GND to ESP32 GND. Make shared connections with proper rails or a soldered distribution point; do not cram several wires into one jumper socket."]},
+        {"type": "callout", "label": "UNPLUGGED CHECK", "text": "Check polarity and continuity of each intended ground connection. Check that 3V3-to-GND and 5V-to-GND are not sustained near-zero-ohm shorts. A brief continuity beep from charging capacitors is not a diagnosis; investigate uncertain readings before power-up."},
+        {"type": "p", "text": "Leave batteries and charging boards out of this build: the project has no completed battery power-path design. Add only one module per mission, with USB disconnected between changes."},
+        {"type": "check", "items": ["I can point to 3V3, GND, and the verified USB 5V rail.", "The DAC VIN rating is confirmed, and no GPIO wire carries 5 V."]}
+      ]
+    },
+    {
+      "id": "firmware", "tag": "03 / WAKE UP THE BRAIN", "title": "Teach it the test tune.",
+      "intro": "Start with only the ESP32 connected to USB. The hardware-test app lets you add modules gradually and see what is working.",
+      "blocks": [
+        {"type": "p", "text": "Install ESP-IDF v5.5 with ESP32-S3 support using Espressif's Getting Started guide (linked on page 16). ESP-IDF builds and transfers the program. The commands below are for a Linux/macOS shell; on Windows use the ESP-IDF terminal and the menuconfig route below."},
+        {"type": "code", "text": "# Skip cloning if you already have this repository.\ngit clone https://github.com/willbearfruits/esp32-s3-supermini-kit.git\ncd esp32-s3-supermini-kit\n. ~/esp/esp-idf/export.sh  # change to your IDF install path\ncd firmware\nidf.py set-target esp32s3\nidf.py menuconfig"},
+        {"type": "p", "text": "In menuconfig, open Kit firmware > Application and select the hardware-test application (CONFIG_KIT_APP_TEST). Save and exit. Run set-target on a fresh setup only; it may reset an existing local configuration."},
+        {"type": "code", "text": "idf.py build\nidf.py flash monitor"},
+        {"type": "p", "text": "The build needs internet access the first time to fetch components. If more than one board is connected, use idf.py -p YOUR_PORT flash monitor, replacing YOUR_PORT with the detected serial port. Exit the monitor with Ctrl+]."},
+        {"type": "callout", "label": "A SUCCESSFUL FIRST BOOT", "text": "Look for the test-app message about a 440 Hz tone for 4 seconds, then mic only. No OLED and no mic data are expected right now. Unplug USB before attaching the display."},
+        {"type": "p", "text": "Board missing? Try another data cable and USB port. To enter download mode, hold BOOT, tap RESET, then release BOOT and flash again. If your board lacks RESET, hold BOOT while reconnecting USB, then release it. On Linux, follow Espressif's serial-port permissions instructions if access is denied."},
+        {"type": "check", "items": ["The hardware-test firmware flashes and its serial log appears."]}
+      ]
+    },
+    {
+      "id": "display", "tag": "04 / GIVE IT A FACE", "title": "Hello, tiny screen.",
+      "intro": "Disconnect USB. Read the four OLED labels carefully; their order varies between modules.",
+      "diagram": "display", "caption": "Functional connections only. SCL may be printed SCK on an I2C OLED; check the module type.",
+      "blocks": [
+        {"type": "table", "headers": ["OLED label", "Connect to"], "rows": [["VCC / VDD", "ESP32 3V3, for a verified 3.3 V-compatible module"], ["GND", "ESP32 GND"], ["SDA", "GPIO12"], ["SCL", "GPIO13"]]},
+        {"type": "p", "text": "Reconnect USB. The serial scan should report 0x3C and the screen should show the test display. The hardware-test app also retries at 0x3D; the main startup path and JAM expect 0x3C. Use a module configured for 0x3C for the finished build."},
+        {"type": "callout", "label": "SCREEN STILL DARK?", "text": "Unplug first. Check VCC/GND, then SDA/SCL, then the module's I2C address. A seven-pin SPI display or an SH1106 board is not the specified SSD1306 module. If the image is upside down, Kit firmware > Rotate the OLED 180 degrees controls its orientation."},
+        {"type": "p", "text": "I2C is a shared two-wire conversation: SDA carries data and SCL keeps time. Later sensors can share these same two signals. The audio wires on the next pages use a different bus called I2S."},
+        {"type": "check", "items": ["The screen lights up and the test display updates."]}
+      ]
+    },
+    {
+      "id": "microphone", "tag": "05 / GIVE IT EARS", "title": "Say hello. Watch it listen.",
+      "intro": "Disconnect USB, then add the INMP441. Keep its small sound opening clear of tape, glue, and fingers.",
+      "diagram": "microphone", "caption": "The mic's SCK is the bit clock on GPIO7. Its SD is data going into GPIO10.",
+      "blocks": [
+        {"type": "table", "headers": ["INMP441 label", "Connect to"], "rows": [["VDD", "3V3"], ["GND", "GND"], ["SCK", "GPIO7"], ["WS", "GPIO8"], ["SD", "GPIO10"], ["L/R", "GND for this guide; do not leave floating"]]},
+        {"type": "p", "text": "Reconnect USB. Wait for the four-second test-tone interval to finish, then speak or hum near the microphone. The level bar and waveform should respond. The serial diagnosis should settle on mic data OK."},
+        {"type": "callout", "label": "TINY VICTORY", "text": "The board can hear you even before an audio output is connected. If the firmware reports the RIGHT slot, L/R is high; the firmware supports that too. No data means check mic power, SD, SCK and WS with USB unplugged."},
+        {"type": "p", "text": "I2S sends sound as numbers. GPIO7 and GPIO8 provide shared timing; the microphone sends its numbers back on GPIO10. The DAC will receive outgoing numbers on a separate wire, GPIO9."},
+        {"type": "check", "items": ["My voice changes the level meter and the mic diagnosis is healthy."]}
+      ]
+    },
+    {
+      "id": "dac", "tag": "06 / LET THE SOUND OUT", "title": "Meet the purple sound card.",
+      "intro": "Disconnect USB. The PCM5102A turns digital audio into a stereo line signal for an amplified listening device.",
+      "diagram": "dac", "caption": "The two SCK labels mean different things: mic SCK -> GPIO7; DAC SCK -> GND.",
+      "blocks": [
+        {"type": "table", "headers": ["DAC label", "Connect to"], "rows": [["VIN", "Verified USB 5V rail, only for the regulator-equipped board"], ["GND", "GND"], ["BCK", "GPIO7 (shared with mic SCK)"], ["LCK / LRCK", "GPIO8 (shared with mic WS)"], ["DIN", "GPIO9"], ["SCK", "GND; check whether the board already ties it low"]]},
+        {"type": "p", "text": "Check the back-of-board configuration. For the documented purple revision: H1L / FLT = L, H2L / DEMP = L, H3L / XSMT = H, H4L / FMT = L. Confirm each pad's function on your revision; bridge only the selected side, never H to L. Use a prepared board or get soldering help."},
+        {"type": "callout", "label": "THIS JACK IS LINE-OUT", "text": "Connect powered speakers, an audio-interface line input, or a separate headphone amplifier. Ordinary headphones and passive speakers need amplification. TI specifies line loads down to 1 kOhm; a headphone-shaped jack does not make this a headphone amp."},
+        {"type": "p", "text": "Start the listening device at low volume. Connect its line/AUX input, then power the kit. Listen for the four-second 440 Hz tone. After it ends, try a gentle hum; keep the speaker away from the mic to avoid feedback."},
+        {"type": "check", "items": ["I hear the startup tone and can hear the mic afterward."]}
+      ]
+    },
+    {
+      "id": "controls", "tag": "07 / ADD THE PLAYFUL BITS", "title": "Twist. Tilt. Click.",
+      "intro": "Disconnect USB. The joystick uses a breakout board; the bare EC11 needs an identified pinout and a soldered adapter or insulated harness.",
+      "diagram": "controls", "caption": "Logical EC11 contacts are shown, not their physical order. Mounting tabs are not signal pins.",
+      "blocks": [
+        {"type": "table", "headers": ["Control contact", "Connect to"], "rows": [["Joystick VCC / +5V marking", "3V3 for this analog KY-023-style module; never 5 V here"], ["Joystick GND / VRy / VRx / SW", "GND / GPIO1 / GPIO2 / GPIO3, respectively"], ["EC11 A / B / common C", "GPIO4 / GPIO5 / GND, respectively"], ["EC11 push switch, two contacts", "One to GPIO6; the other to GND"]]},
+        {"type": "p", "text": "Identify encoder A/B/common and the separate push switch from its drawing or an unplugged continuity test. Do not infer the pin order from this illustration. For an encoder breakout instead, map CLK, DT and SW to GPIO4, GPIO5 and GPIO6; power any onboard pull-ups from 3V3."},
+        {"type": "p", "text": "Power up without touching the joystick so startup centering can work. Turning the encoder brings up the ENCODER test screen and changes its count. A tap changes effect; a half-second hold changes preset. If turning is reversed, unplug and exchange A/B."},
+        {"type": "callout", "label": "SAVE THE JOYSTICK VICTORY FOR JAM", "text": "The test app is mainly a mic/DAC/encoder check. Use JAM on page 13 to verify joystick navigation and click. The firmware rotates the joystick axes for the case mounting; do not swap VRx/VRy just to match the drawing's appearance."},
+        {"type": "check", "items": ["Encoder turn and push both work; the joystick is powered from 3V3."]}
+      ]
+    },
+    {
+      "id": "bench", "tag": "08 / THE OPEN-CASE SOUND CHECK", "title": "Earn your first-sound badge.",
+      "intro": "Keep everything on the bench. A working open build is much easier to assemble and troubleshoot than a mystery inside a closed box.",
+      "blocks": [
+        {"type": "table", "headers": ["Try this", "You should get"], "rows": [["Restart the test app", "A stable boot, then about 4 seconds of 440 Hz tone"], ["Speak gently after the tone", "A moving level meter and audible mic signal"], ["Watch the serial diagnosis", "mic data OK, or mic OK, RIGHT slot"], ["Turn the encoder", "ENCODER page; count changes consistently"], ["Tap, then briefly hold the encoder", "Effect changes; then preset changes"], ["Leave the kit running for a few minutes", "No repeated boot counter increments, dropouts or excess heat"]]},
+        {"type": "callout", "label": "DO NOT CLOSE THE CASE YET", "text": "One failed check is a useful clue. Unplug, inspect that stage, fix it, and repeat the check. The firmware's no shorts between I2S pins message covers only selected signal pairs; it is not a power-rail safety test."},
+        {"type": "heading", "text": "Label future-you's wires"},
+        {"type": "bullets", "items": ["Label both ends with the signal name or GPIO number. Color is a helpful extra: use red for 3V3, orange for 5V, and black for GND if you have them.", "Replace flaky temporary connections with fitted headers and insulated, strain-relieved wiring. Keep audio wires short and away from loose metal hardware.", "Photograph your working wiring before moving it into the shell. Leave enough slack to open the case without pulling a connector off.", "If you hear a squeal, lower the external volume and move the speaker away from the mic. This is acoustic feedback, not a challenge to sing louder."]},
+        {"type": "check", "items": ["All the checks above pass with the case open.", "Both ends of each wire are labeled and the wiring is documented.", "USB is unplugged before I begin mechanical assembly."]}
+      ]
+    },
+    {
+      "id": "case-prep", "tag": "09 / MAKE ITS LITTLE HOME", "title": "Print. Measure. Dry-fit.",
+      "intro": "The current shell is 100 x 98 x 24 mm. Its cradles model specific module sizes; a board with the same chip can still have a different outline.",
+      "image": "../../enclosure/out/exploded.png", "caption": "Existing OpenSCAD exploded render from this repository. CAD preview, not proof of physical fit.",
+      "blocks": [
+        {"type": "p", "text": "Use enclosure/out/shell.stl and lid.stl, or the combined print_bed.stl. The exports are already print-oriented: shell top face down, lid bottom face down. Inspect the sliced layers and small bosses before printing."},
+        {"type": "p", "text": "The design targets a 0.8 mm nozzle, 2.4 mm walls, and 0.32-0.40 mm layers. Start with 3 walls and enough solid layers for 2.4 mm thickness (6 at 0.40 mm or 8 at 0.32 mm), plus 20-30% infill. The CAD intends support-free printing; confirm in your slicer."},
+        {"type": "table", "headers": ["Case hardware", "Quantity / starting specification"], "rows": [["Heat-set inserts + lid screws", "4 M3 inserts (OD about 4.6 mm, length 4-5.7 mm); 4 M3 x 10 mm screws"], ["OLED / joystick screws", "4 M2 x 4 mm / 4 M2 x 6 mm; verify actual engagement"], ["Encoder hardware", "Matching M7 nut/washer and 6 mm shaft knob"], ["Mic gasket + wire restraint", "One foam/silicone ring; small ties or insulated restraint"]]},
+        {"type": "callout", "label": "FIT FIRST, HEAT SECOND", "text": "Try every unpowered board in its cradle, including headers, plug bodies and wire bends. Fit may require CAD changes. Install inserts in the empty shell using your insert/filament supplier's method; practice on scrap and let them cool. Check screw length so tips cannot bottom out, pierce plastic, or hit a board."},
+        {"type": "check", "items": ["The dry-fit works and every screw is the right length."]}
+      ]
+    },
+    {
+      "id": "case-assembly", "tag": "10 / EVERY PART GETS A PLACE", "title": "Build the shell sandwich.",
+      "intro": "USB stays unplugged. Use the drawing as a placement key, then follow the actual mounting features in your printed parts.",
+      "diagram": "placement", "caption": "Conceptual top-view placement, not a drill template. Both panels use the same front-edge reference.",
+      "blocks": [
+        {"type": "steps", "items": ["Top shell: fasten the OLED behind its window with four M2 screws. Use light pressure; do not load or pinch the glass.", "Seat the round mic beside the OLED with its real acoustic port aligned to the grille. Place the gasket around the port; do not cover the opening or force the PCB into the collar.", "Fit the EC11 through its panel opening, secure the matching washer/nut, and add the knob. Keep enough clearance for the push action. Mount the joystick on its four bosses and check full travel.", "Lid: seat the ESP32 with USB-C at the front edge. Seat the DAC on the right with its jack facing that same front edge, beside USB. Secure the optional IMU in its own cradle if fitted.", "Reconnect the labeled harness. Insulate exposed joints, restrain wires, and keep the seam, screw bosses, antenna area and mic port clear. Check connector and pin clearance with the halves gently together.", "With the case still open on a nonconductive surface, repeat the page 10 sound check. Unplug, align the lip, and close with four lid screws, lightly and evenly. If it resists, reopen and find the obstruction."]},
+        {"type": "check", "items": ["No wire is pinched; USB/audio plugs seat fully; the knob clicks and stick moves.", "After closing, the screen, startup tone, microphone and encoder still work."]}
+      ]
+    },
+    {
+      "id": "jam", "tag": "11 / MAKE YOUR FIRST BEAT", "title": "Your tiny band is ready.",
+      "intro": "Switch to JAM when the hardware checks pass. It is the case-friendly sequencer: six channels, a sampler, and a grid of musical possibilities.",
+      "image": "../../images/jam/pattern-drums.png", "caption": "Actual JAM drum-grid render from the repository. The grid contains two bars of 16 steps.",
+      "blocks": [
+        {"type": "p", "text": "Exit the serial monitor with Ctrl+]. In your activated ESP-IDF shell, from the repository root, run the following. The first setup on page 5 must have created firmware/sdkconfig. On Windows, select JAM in menuconfig, then build and flash instead."},
+        {"type": "code", "text": "tools/app.sh jam\ncd firmware\nidf.py flash monitor"},
+        {"type": "table", "headers": ["Gesture in JAM", "What happens"], "rows": [["Turn encoder / flick joystick", "Move the pattern cursor"], ["Tap encoder", "Toggle the selected grid cell"], ["Hold encoder about 0.5 seconds", "Next page: PATTERN, MIX, SONG, SETUP"], ["Push encoder and turn", "Change channel"], ["Click joystick", "Enter/cycle perform mode; behavior depends on channel"], ["Hold encoder 3 seconds", "Clear the current channel - use deliberately"]]},
+        {"type": "callout", "label": "THE FIRST-BEAT CHALLENGE", "text": "Select DRUMS on PATTERN. Put kicks on steps 1, 5, 9 and 13 of the first bar; add snare on 5 and 13 and hats on odd steps. Repeat in the second bar. Then switch to BASS and add three notes. Hear that? You built the band."},
+        {"type": "p", "text": "Verify the joystick moves the cursor and its click changes perform mode. JAM autosaves about two seconds after the last edit; wait a few extra seconds before unplugging. Try a sample next: select MIC and tap to record up to two seconds, then select SAMPLE. Live mic is audible only while MIC is selected."},
+        {"type": "check", "items": ["My beat plays, the joystick works, and my pattern returns after a restart."]}
+      ]
+    },
+    {
+      "id": "extras", "tag": "BONUS / OPTIONAL SIDE QUESTS", "title": "Add extras after the win.",
+      "intro": "These are independent extensions. The seven-part case has an IMU cradle; it has no designed mounting for the speaker, amplifier, or distance sensor.",
+      "blocks": [
+        {"type": "heading", "text": "Motion and distance for the looper"},
+        {"type": "table", "headers": ["Module", "Connections / expected I2C address"], "rows": [["MPU6050 / GY-521", "3.3 V-compatible VCC; GND; SDA -> GPIO12; SCL -> GPIO13. AD0 low for 0x68; verify board default."], ["VL53L0X breakout", "Verified 3.3 V-compatible supply and I2C; GND; SDA -> GPIO12; SCL -> GPIO13. Address 0x29. Leave XSHUT/INT at the module's documented defaults."]]},
+        {"type": "p", "text": "These share the OLED's I2C wires. Check breakout supply requirements and pull-ups before connecting; pull-ups must go to 3V3. If none of the boards provide them, add one 4.7 kOhm pull-up from SDA to 3V3 and one from SCL to 3V3. Do not add a new pair blindly to every board."},
+        {"type": "p", "text": "Use tools/app.sh looper, then flash, to try motion and distance expression. The driver implements VL53L0X, not VL53L1X. An I2C scan finds presence; testing tilt/distance in the looper verifies actual behavior."},
+        {"type": "heading", "text": "MAX98357A speaker branch: bench extension"},
+        {"type": "table", "headers": ["Amplifier pin", "Connection"], "rows": [["BCLK / LRC / DIN", "GPIO7 / GPIO8 / GPIO9 (shared with the DAC)"], ["SD / GND / GAIN", "GPIO11 / common GND / floating, if supported by your board"], ["VIN", "Verified regulated supply with enough current for the speaker load"], ["Speaker + and -", "A suitable 4 or 8 ohm speaker across the two outputs"]]},
+        {"type": "callout", "label": "SPEAKER OUTPUT IS NOT GROUND", "text": "Neither speaker terminal goes to GND or to the DAC jack. Do not load the SuperMini's small 3V3 regulator with the amp. For a separate rated amp supply, join grounds but do not tie its positive rail to USB 5V without a designed power path."},
+        {"type": "p", "text": "Current firmware enables the amp while the GPIO6 encoder switch is held, unless Kit firmware > Keep the speaker amp on all the time is enabled. BOOT's software button alias does not enable this hardware gate. The PCM5102A line-out is independent of that gate. Speaker power distribution and mounting need separate validation before boxing this extension."}
+      ]
+    },
+    {
+      "id": "rescue", "tag": "RESCUE / EVERY BUILD HAS A PLOT TWIST", "title": "One clue at a time.",
+      "intro": "Unplug before touching wiring. Return to the hardware-test app for diagnosis; reconnect one stage at a time.",
+      "blocks": [
+        {"type": "table", "headers": ["What you see or hear", "Try this first"], "rows": [["No serial device / flashing fails", "Try a known data cable and direct USB port; close other serial monitors. Enter BOOT download mode (page 5). Check port permissions."], ["Screen dark; firmware running", "Check OLED VCC/GND, then GPIO12 SDA and GPIO13 SCL. Look for 0x3C. Test app can retry 0x3D; JAM expects 0x3C."], ["Tone missing; screen works", "Check external AUX/line input and volume. Unplug; check DAC VIN, BCK=7, LCK=8, DIN=9, SCK=GND and XSMT=H."], ["Tone works; mic silent", "Check INMP441 VDD=3V3, SD=10, SCK=7, WS=8 and L/R tied low. Read the test diagnosis; inspect for a blocked mic port."], ["RIGHT slot message", "Mic L/R is high. Supported by the firmware; not a fault if the level meter responds."], ["Intermittent / line stuck", "Inspect fitted headers, shared grounds and loose jumpers. Reconnect with power off. Keep signal wiring short."], ["Repeated boots / BROWNOUT", "Disconnect USB immediately if anything gets hot. Remove the newest module; check shorts, polarity, cable and power budget. Retry the known-good stage."], ["Encoder reversed / skips", "Verify common=GND and A/B=4/5. Exchange A/B if reversed. For multiple steps per detent, check Kit firmware > Encoder counts per detent."], ["Joystick odd / no click", "Reboot with stick centered. Check VRy=1, VRx=2, SW=3 and 3V3 power. Firmware rotation is intentional for the case."], ["Squeal / distortion", "Lower listening volume; move speaker away from mic. Check input mode and mic gain. Do not use the DAC to drive passive speakers or headphones directly."], ["Line-out works; optional speaker silent", "Check amp supply and SD=11. It is normally enabled only while GPIO6 is held; see page 14."], ["Works open, fails closed", "Unplug and reopen. Look for a pinched wire, a loose connector, screw contact, blocked mic port, or knob pressed against the panel."]]},
+        {"type": "callout", "label": "ASK FOR HELP WITH A GOOD CLUE", "text": "Share clear photos of both sides of each board, your GPIO-to-label wiring list, firmware application, and the relevant serial log. Include the exact module revision and what passed before the failure."}
+      ]
+    },
+    {
+      "id": "reference", "tag": "WORKBENCH CARD / KEEP THIS PAGE HANDY", "title": "Your pocket pin map.",
+      "intro": "Signal labels, not physical pin order. Unplug before changing connections. Firmware source of truth: firmware/main/pins.h.",
+      "blocks": [
+        {"type": "table", "headers": ["ESP32", "Destination"], "rows": [["GPIO1 / GPIO2 / GPIO3", "Joystick VRy / VRx / SW"], ["GPIO4 / GPIO5 / GPIO6", "Encoder A / B / push switch; common and other switch contact -> GND"], ["GPIO7", "Mic SCK + DAC BCK (+ optional amp BCLK)"], ["GPIO8", "Mic WS + DAC LCK (+ optional amp LRC)"], ["GPIO9", "DAC DIN (+ optional amp DIN)"], ["GPIO10", "Mic SD"], ["GPIO11", "Optional amp SD"], ["GPIO12 / GPIO13", "OLED + optional sensors SDA / SCL"], ["3V3 / GND", "Verified 3.3 V modules / all module grounds"], ["Verified USB 5V rail", "VIN of verified regulator-equipped purple DAC only"]]},
+        {"type": "callout", "label": "THE EASY-TO-MISS CONNECTIONS", "text": "Mic L/R -> GND. DAC SCK -> GND. Purple DAC straps: FLT=L, DEMP=L, XSMT=H, FMT=L (confirm your revision). Never put 5 V on GPIO. Leave USB GPIO19/20 and other boot/strapping pins alone."},
+        {"type": "heading", "text": "A few words decoded"},
+        {"type": "p", "text": "GPIO: a programmable signal pin. DAC: digital sound to analog audio. I2S: digital audio bus. I2C: two-wire display/sensor bus. VIN/VCC/VDD: power labels whose voltage depends on the board. Continuity: a meter check for an electrical connection. Dry-fit: assemble without power or permanent fastening."},
+        {"type": "heading", "text": "Sources and build notes"},
+        {"type": "p", "text": "Prepared from repository revision d52a80d: firmware/main/pins.h, main.c, app_test.c, audio.c, input.c and Kconfig.projbuild; README.md; parts/minimal-kit.md; enclosure/enclosure.scad and enclosure/README.md. This guide documents the prototype; no physical assembly or electrical test was performed for this edition."},
+        {"type": "links", "items": [["Project and firmware", "https://github.com/willbearfruits/esp32-s3-supermini-kit"], ["Espressif: install ESP-IDF v5.5 for ESP32-S3", "https://docs.espressif.com/projects/esp-idf/en/v5.5/esp32s3/get-started/index.html"], ["TI: PCM5102A line-output specification", "https://www.ti.com/product/PCM5102A"], ["Adafruit: MAX98357A breakout pinouts (match your board)", "https://learn.adafruit.com/adafruit-max98357-i2s-class-d-mono-amp/pinouts"]]},
+        {"type": "p", "text": "Illustrations are editable SVGs with PNG companions. Case and JAM images come from this repository. Rebuild instructions and the browser checklist are beside the guide in docs/assembly/. Documentation and new artwork: MIT, as in the repository license."}
+      ]
+    }
+  ]
+}

@@ -1,19 +1,41 @@
 # ESP32-S3 SuperMini Audio Kit
 
 An open-source, solderless, 3D-printable handheld built around the ESP32-S3
-SuperMini. Microphone in, speaker and headphones out, a small OLED, an encoder,
-a joystick, and room for a distance sensor and an IMU.
+SuperMini. Microphone in, stereo line-out, a small OLED, an encoder,
+a joystick, and optional speaker amplification, distance sensing and an IMU.
+Headphones require a separate headphone amplifier.
 
 This repo will grow into everything needed to build one or sell one: firmware,
 carrier PCB, enclosure, bill of materials, and assembly instructions.
 
-**Status: five firmware applications, a printable case, a purchasing list.**
+**Status: five firmware applications, a printable case, a purchasing list, and
+an illustrated prototype assembly guide.** The carrier PCB remains unfinished;
+the current build uses prepared headers and a wired harness.
+
+## Build your first kit
+
+[**Start the beginner-friendly assembly guide**](docs/assembly/README.md) ·
+[**Printable PDF (16 pages)**](output/pdf/esp32-s3-supermini-assembly-guide.pdf) ·
+[Browser checklist](docs/assembly/index.html) ·
+[SVG and PNG diagrams](docs/assembly/assets/)
+
+![Make a little noise: the SuperMini handheld](docs/assembly/assets/hero.svg)
+
+Build it one small win at a time: flash the test app, light the screen, add the
+mic and line-out, check the controls, fit the case, and make your first beat.
+The guide includes wiring tables, checkpoints, case hardware, and troubleshooting.
+Download the repository and open `docs/assembly/index.html` for the offline
+interactive checklist. Exact module revisions and enclosure fit need checking
+before assembly; the guide documents the prototype, not a physically validated kit.
+
+## Firmware applications
+
 The firmware builds as one of:
 
 | App | `tools/app.sh` | What it is |
 |-----|----------------|------------|
-| JAM | `jam` | Step sequencer and sampler for the boxed unit: six channels on a scale-locked grid, slices you can scratch, roll and chaos for breakcore, mixer with insert effects, eight pattern banks, a song page, autosave. Encoder and joystick only. |
-| Looper | `looper` (default) | Hum, beatbox or whistle and get a track: up to 8 tracks on a fixed grid, scenes and an arrangement, stereo mix, autosave, WAV/MIDI export over a USB drive mode. |
+| JAM | `jam` (default) | Step sequencer and sampler for the boxed unit: six channels on a scale-locked grid, slices you can scratch, roll and chaos for breakcore, mixer with insert effects, eight pattern banks, a song page, autosave. Encoder and joystick only. |
+| Looper | `looper` | Hum, beatbox or whistle and get a track: up to 8 tracks on a fixed grid, scenes and an arrangement, stereo mix, autosave, WAV/MIDI export over a USB drive mode. |
 | Faust showcase | `faust` | Mic through seven [Faust](https://faust.grame.fr) programs (zita reverb, pitch shift, wah, amp sim, flanger, compressor, a pitch-following synth), each with presets. |
 | Hardware test | `test` | Mic to DAC with a wiring diagnosis on the screen and serial log, a boot-time test tone, delay/reverb/beat repeat. Flash this first on a new build. |
 | Instrument | `instrument` | The older eight-mode voice instrument. |
@@ -24,7 +46,7 @@ The firmware builds as one of:
 |------|------|-----|
 | ESP32-S3 SuperMini | brain, native USB | |
 | INMP441 | MEMS microphone | I2S (RX) |
-| PCM5102A | line / headphone DAC | I2S (TX) |
+| PCM5102A | line-out DAC (headphones need an amp) | I2S (TX) |
 | MAX98357A | 3 W speaker amp | I2S (TX) |
 | 0.96" SSD1306 OLED | display | I2C |
 | Rotary encoder with button | input | GPIO |
@@ -55,6 +77,12 @@ parts/        purchasing lists, datasheets and drawings
 images/       photos and rendered screens
 hardware/     later: KiCad carrier PCB
 ```
+
+## Flash a release
+
+No toolchain needed: each [release](https://github.com/willbearfruits/esp32-s3-supermini-kit/releases)
+has one `.bin` per application that flashes at offset 0 with esptool or in the
+browser. See [docs/flashing.md](docs/flashing.md).
 
 ## Build the firmware
 
@@ -180,7 +208,7 @@ oscillators on this chip, each costs 256 KB of internal RAM.
 - [x] 3D-printed enclosure ([enclosure/](enclosure/), first revision)
 - [x] Purchasing list ([parts/minimal-kit.md](parts/minimal-kit.md))
 - [ ] Carrier PCB (KiCad) with sockets for every module
-- [ ] Assembly guide
+- [x] Illustrated prototype assembly guide ([web](docs/assembly/README.md), [PDF](output/pdf/esp32-s3-supermini-assembly-guide.pdf), SVG/PNG artwork)
 
 ## License
 

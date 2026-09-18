@@ -1,6 +1,15 @@
 # Pin map
 
-Board: **ESP32-S3 SuperMini** (ESP32-S3FH4R2, 4 MB flash, 2 MB PSRAM, native USB). All logic is 3.3 V. Every module below runs from the SuperMini's 3V3 pin.
+Board: **ESP32-S3 SuperMini** (ESP32-S3FH4R2, 4 MB flash, 2 MB PSRAM, native USB).
+All GPIO logic is 3.3 V. Module supply voltages differ: the documented
+regulator-equipped purple DAC uses 5 V at VIN, while the microphone and
+joystick use 3V3. Verify each breakout's supply rating and power path; the
+optional speaker amp needs a supply with enough current, not an assumed load
+on the SuperMini's small 3V3 regulator.
+
+New to the build? Follow the [illustrated assembly guide](assembly/README.md)
+or its [printable PDF](../output/pdf/esp32-s3-supermini-assembly-guide.pdf).
+Its staged diagrams use signal labels, not physical header positions.
 
 The canonical copy of this table lives in `firmware/main/pins.h`. If you change one, change the other.
 
@@ -56,7 +65,11 @@ Trade-off: both DACs always play the same audio. If you ever want different aud
 | L/R | GND (data lands in the left slot; the firmware also accepts it tied to VDD, right slot) |
 
 
-### PCM5102A DAC (purple board, line / headphone out)
+### PCM5102A DAC (purple board, line-out)
+
+The output is line level. Use powered speakers, an audio-interface line input,
+or a separate headphone amplifier; ordinary headphones need amplification.
+Confirm the regulator, VIN rating, and strap functions for your exact board.
 
 | PCM5102A | Connect to |
 | - | - |
@@ -84,7 +97,7 @@ Boards often ship with one or more of these open. An open XSMT means the DAC st
 
 | MAX98357A | Connect to |
 | - | - |
-| VIN | 3V3 (5V works too and is louder, but keep logic at 3.3 V) |
+| VIN | Verified regulated supply within the module's rating, with enough current for the speaker load; keep GPIO logic at 3.3 V |
 | GND | GND |
 | SD | GPIO 11 |
 | GAIN | leave floating (9 dB) |
@@ -94,7 +107,11 @@ Boards often ship with one or more of these open. An open XSMT means the DAC st
 | + / - | speaker, 4 or 8 ohm |
 
 
-Driving SD high (3.3 V) selects the (L+R)/2 mix mode. Driving it low shuts the amp down. The firmware starts with it low.
+Driving SD low shuts the amp down; channel selection with SD high depends on
+the breakout's SD_MODE network. The firmware starts with it low and, by default,
+enables it while the GPIO6 encoder switch is held. `CONFIG_KIT_AMP_ALWAYS_ON`
+keeps it enabled. Neither speaker output terminal may be connected to GND.
+See the assembly guide's optional-extension section for power and mounting limits.
 
 ### I2C devices
 
@@ -103,9 +120,8 @@ All on GPIO 12 (SDA) and GPIO 13 (SCL). Addresses do not clash:
 | Device | Address |
 | - | - |
 | SSD1306 0.96" OLED | 0x3C |
-| VL53L0X / VL53L1X ToF | 0x29 |
+| VL53L0X ToF (the current driver does not implement VL53L1X) | 0x29 |
 | MPU6050 IMU | 0x68 |
 
 
 Most breakout boards include pull-ups. If none of yours do, add 4.7 k to 3V3 on SDA and SCL.
-

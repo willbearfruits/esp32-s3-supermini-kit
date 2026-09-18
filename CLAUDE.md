@@ -23,6 +23,7 @@ idf.py build
 idf.py flash monitor           # board enumerates over native USB (USB Serial/JTAG)
 idf.py menuconfig              # tunables under "Kit firmware"
 tools/app.sh looper|instrument|test|faust|jam   # switch the application in sdkconfig and rebuild
+tools/release.sh               # merged single-file images per app into release/<tag>/ (gitignored)
 ```
 
 `sdkconfig` is generated and gitignored; edit `sdkconfig.defaults` for anything
@@ -34,8 +35,9 @@ reading the serial log described in README.md. Build logs on failure are under
 
 Single ESP-IDF app in `firmware/main/`, project name `kit_instrument`, five
 applications selected by the Kconfig choice `KIT_APP` (menuconfig -> Kit
-firmware -> Application, or `tools/app.sh`): the voice looper (default), the
-older eight-mode voice instrument, a hardware test, a Faust showcase and JAM.
+firmware -> Application, or `tools/app.sh`): JAM (default), the voice
+looper, the older eight-mode voice instrument, a hardware test and a Faust
+showcase.
 All share the engine
 below; `main.c` does the common bring-up (pin self-test, I2C bus recovery and
 scan, OLED, `audio_start`) and then calls `app_<name>_run`. `fx_list.c` picks
