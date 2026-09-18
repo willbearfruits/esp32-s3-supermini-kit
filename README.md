@@ -7,10 +7,16 @@ a joystick, and room for a distance sensor and an IMU.
 This repo will grow into everything needed to build one or sell one: firmware,
 carrier PCB, enclosure, bill of materials, and assembly instructions.
 
-**Status: milestone 4, the voice looper.** Hum, beatbox or whistle into a
-handheld and get a track: up to 8 tracks on a fixed grid, scenes and an
-arrangement, stereo mix, autosave, WAV/MIDI export over a USB drive mode.
-The older eight-mode voice instrument is still selectable at build time.
+**Status: five firmware applications, a printable case, a purchasing list.**
+The firmware builds as one of:
+
+| App | `tools/app.sh` | What it is |
+|-----|----------------|------------|
+| JAM | `jam` | Step sequencer and sampler for the boxed unit: six channels on a scale-locked grid, slices you can scratch, roll and chaos for breakcore, mixer with insert effects, eight pattern banks, a song page, autosave. Encoder and joystick only. |
+| Looper | `looper` (default) | Hum, beatbox or whistle and get a track: up to 8 tracks on a fixed grid, scenes and an arrangement, stereo mix, autosave, WAV/MIDI export over a USB drive mode. |
+| Faust showcase | `faust` | Mic through seven [Faust](https://faust.grame.fr) programs (zita reverb, pitch shift, wah, amp sim, flanger, compressor, a pitch-following synth), each with presets. |
+| Hardware test | `test` | Mic to DAC with a wiring diagnosis on the screen and serial log, a boot-time test tone, delay/reverb/beat repeat. Flash this first on a new build. |
+| Instrument | `instrument` | The older eight-mode voice instrument. |
 
 ## Parts
 
@@ -39,9 +45,15 @@ options and CAD references. Shipping and exact module dimensions remain unverifi
 ## Repo layout
 
 ```
-firmware/   ESP-IDF project (C)
-docs/       pin map, wiring, later: BOM and assembly guide
-hardware/   later: KiCad carrier PCB and printable enclosure
+firmware/     ESP-IDF project (C, a little C++ for the Faust glue)
+firmware/faust/  Faust sources; tools/faustgen.sh turns them into C++ under firmware/main/faust/
+tools/        app.sh (switch application), faustgen.sh
+docs/         pin map, wiring diagram, acoustics notes
+enclosure/    parametric OpenSCAD case, renders and STLs (0.8 mm nozzle, heat-set inserts)
+3d/           earlier concept bodies (slab, ocarina, cup)
+parts/        purchasing lists, datasheets and drawings
+images/       photos and rendered screens
+hardware/     later: KiCad carrier PCB
 ```
 
 ## Build the firmware
@@ -61,13 +73,56 @@ The SuperMini's USB-C is wired to the S3's native USB, so it usually flashes
 without pressing anything. If it does not show up, hold BOOT, tap RESET,
 release BOOT, then flash again.
 
-Tunables live under `idf.py menuconfig` -> `Kit loopback`: mic gain, sample
-rate, and whether the speaker amp is always on.
+Pick the application with `tools/app.sh jam` (or `looper`, `faust`, `test`,
+`instrument`), which edits `sdkconfig` and rebuilds. Tunables live under
+`idf.py menuconfig` -> `Kit firmware`: application, mic gain, sample rate,
+tempo, encoder steps, OLED rotation, whether the speaker amp is always on.
+
+Wiring note: the INMP441's L/R pin may go to GND or VDD, the firmware finds
+which I2S slot carries the mic. The joystick's VRy goes to GPIO1 and VRx to
+GPIO2 (see [docs/pinmap.md](docs/pinmap.md)).
+
+## Using JAM
+
+![drums](images/jam/pattern-drums.png) ![lead](images/jam/pattern-lead.png)
+![mixer](images/jam/mix.png) ![song](images/jam/song.png)
+
+Four pages, cycled by holding the encoder for half a second: **PATTERN**,
+**MIX**, **SONG**, **SETUP**. Push the encoder in and turn it to change
+channel (DRUMS, BASS, LEAD, PAD, SAMPLE, MIC). Hold it 3 s to clear the
+channel.
+
+**PATTERN** is the step grid of the channel, two bars of 16 steps. Turn the
+encoder or flick the joystick to move the cursor, tap the encoder to toggle
+the cell. Drums have kick, snare and hat lanes. Melodic channels have one
+row per degree of the scale chosen in SETUP plus the octave, so notes cannot
+leave the key. PAD rows are chord degrees. SAMPLE plays the recording pitched
+by row, or in SLICE mode one of eight slices per row, where a lit cell tapped
+again plays in reverse. MIC is the live mic, only audible while selected;
+tap the encoder there to record up to two seconds into the sampler.
+
+Click the joystick for **perform** mode. On DRUMS the stick rolls the last
+hit, from 1/8 to 1/64 by tilt, louder or softer along the other axis. On
+SAMPLE it first scratches the recording like a record, click again and it
+rolls with a pitch ramp. On BASS and LEAD it opens the filter and bends, on
+PAD and MIC it pushes the reverb and delay sends. Hold the encoder and flick
+up or down to switch pattern bank, A to H, instantly.
+
+**MIX** shows a fader per channel with pan, reverb and delay sends, an insert
+effect (drive, crush, chorus, phaser, wobble, tremolo) and its amount.
+**SONG** chains banks with repeat counts, tap to play from the cursor.
+**SETUP** has tempo up to 250, root and scale (major, minor, dorian,
+mixolydian, harmonic minor, two pentatonics, blues), a drum pattern to load
+into the grid, swing, CHAOS (the chance that a step rolls, drops, swaps or
+reverses), the drum kit and synth presets, and COPY and CLEAR ALL.
+
+Everything is saved two seconds after the last edit and comes back at
+power-up.
 
 ## Using the looper
 
-One encoder (BOOT stands in for its push until one is wired), one joystick,
-optional tilt sensor and distance sensor. Same grammar everywhere:
+One encoder, one joystick, optional tilt sensor and distance sensor. Same
+grammar everywhere:
 
 | Gesture | Does |
 |---------|------|
@@ -108,15 +163,24 @@ The serial log prints the current track, scene, key, the voice tracker's
 level and confidence, the DSP load with a per-section breakdown, and which
 inputs were detected.
 
+## Faust
+
+Effects and the JAM synth voice are written in Faust under `firmware/faust/`.
+After editing a `.dsp`, run `tools/faustgen.sh` (needs the `faust` compiler
+on PATH) to regenerate the C++ classes under `firmware/main/faust/`, which
+are committed so a normal build never needs Faust. Avoid table-based
+oscillators on this chip, each costs 256 KB of internal RAM.
+
 ## Roadmap
 
 - [x] Pin map
 - [x] I2S loopback (mic -> DACs)
-- [ ] OLED + encoder + joystick input demo
-- [ ] ToF and IMU readouts
+- [x] OLED, encoder and joystick input
+- [x] ToF and IMU readouts (looper)
+- [x] 3D-printed enclosure ([enclosure/](enclosure/), first revision)
+- [x] Purchasing list ([parts/minimal-kit.md](parts/minimal-kit.md))
 - [ ] Carrier PCB (KiCad) with sockets for every module
-- [ ] 3D-printed enclosure
-- [ ] BOM with links and assembly guide
+- [ ] Assembly guide
 
 ## License
 

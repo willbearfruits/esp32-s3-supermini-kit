@@ -32,10 +32,11 @@ reading the serial log described in README.md. Build logs on failure are under
 
 ## Firmware architecture
 
-Single ESP-IDF app in `firmware/main/`, project name `kit_instrument`, three
+Single ESP-IDF app in `firmware/main/`, project name `kit_instrument`, five
 applications selected by the Kconfig choice `KIT_APP` (menuconfig -> Kit
 firmware -> Application, or `tools/app.sh`): the voice looper (default), the
-older eight-mode voice instrument, a hardware test, a Faust showcase and JAM. All share the engine
+older eight-mode voice instrument, a hardware test, a Faust showcase and JAM.
+All share the engine
 below; `main.c` does the common bring-up (pin self-test, I2C bus recovery and
 scan, OLED, `audio_start`) and then calls `app_<name>_run`. `fx_list.c` picks
 the fx table per application. The build uses `-O3
@@ -98,7 +99,7 @@ the fx table per application. The build uses `-O3
   voice in `faust/jam_voice.dsp` through `faust_voice.cpp`, pad is
   `synth.c`, drums `kit.c`, master `mix.c` (oversampling off). Sampler
   records from the mic channel into PSRAM and can be scratched with the
-  joystick in perform mode. Three pages: PATTERN, MIX, SETUP. No BOOT (it
+  joystick in perform mode. Pages: PATTERN, MIX, SONG, SETUP. No BOOT (it
   is inside the case): encoder hold = next page, push+turn = channel, tap =
   toggle/mute/record, 3 s = clear channel, SETUP has CLEAR ALL; joystick
   flicks navigate, click toggles perform. Drum styles are loaded into the
@@ -110,7 +111,7 @@ the fx table per application. The build uses `-O3
   sample SLICE mode (8 slice rows, cells cycle forward/reverse), joystick
   click cycles perform modes (DRUMS roll; SAMPLE scratch, roll), SETUP
   CHAOS % mutates steps (roll, drop, swap, other slice, reverse, octave),
-  MIX page has an insert fx column (mix.c FX_*) and amount. Four pattern
+  MIX page has an insert fx column (mix.c FX_*) and amount. Eight pattern
   banks A-H (encoder held + joystick flick up/down, or SETUP PATTERN/COPY),
   switching is instant and keeps the playhead. SONG page: 16 slots of
   bank x repeats, tap plays from the cursor slot. UI look: inverted title
@@ -158,5 +159,6 @@ the fx table per application. The build uses `-O3
   HTML/CSV and the resource manifest from the markdown (needs the Python
   `markdown` package). `research-2026-09-09/` has downloaded datasheets and
   drawings.
-- `docs/pinout.md`, `images/` and `hardware/{schematic,pcb,manufacturing}`
-  are scaffold placeholders for the KiCad carrier PCB milestone.
+- `images/jam/` holds the JAM page renders used by the README. `docs/pinout.md`
+  and `hardware/{schematic,pcb,manufacturing}` are scaffold placeholders for
+  the KiCad carrier PCB milestone.
